@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>실시간 테트리스 배틀</title>
+<style>
+  :root{
+    --bg:#0b0e1a; --panel:#141a2e; --panel2:#1b2238; --line:#2a3350;
+    --text:#e8ecf7; --muted:#8b95b5; --accent:#6ee7ff; --accent2:#a78bfa; --good:#34d399; --bad:#fb7185;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;
+    background:radial-gradient(1200px 700px at 50% -10%,#1a2140 0%,var(--bg) 60%);
+    color:var(--text);-webkit-tap-highlight-color:transparent;overflow:hidden;
+  }
+  button{font-family:inherit;cursor:pointer}
+  .hidden{display:none !important}
+
+  /* ---------- 학생: 이름 입력 ---------- */
+  #nameScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;padding:24px;text-align:center}
+  #nameScreen h1{font-size:clamp(26px,7vw,44px);margin:0;letter-spacing:-1px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  #nameScreen p{color:var(--muted);margin:0 0 6px}
+  #nameInput{font-size:20px;padding:14px 18px;width:min(320px,80vw);border-radius:14px;border:1px solid var(--line);
+    background:var(--panel);color:var(--text);text-align:center;outline:none}
+  #nameInput:focus{border-color:var(--accent)}
+  .btn{font-size:18px;font-weight:700;padding:14px 28px;border-radius:14px;border:none;color:#06121f;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 8px 30px rgba(110,231,255,.25)}
+  .btn:active{transform:translateY(1px)}
+
+  /* ---------- 학생: 게임 ---------- */
+  #playScreen{position:fixed;inset:0;display:flex;flex-direction:column;padding:8px;gap:8px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 8px}
+  .topbar .me{font-weight:800;font-size:16px}
+  .topbar .rank{color:var(--accent);font-weight:800}
+  .roomTag{font-weight:800;font-size:13px;color:#0b0e1a;background:var(--accent);border-radius:999px;padding:2px 12px}
+  .roomTag:empty{display:none}
+  .roomTabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 10px}
+  .roomTabs .rtab{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:10px;
+    padding:8px 14px;font-size:14px;font-weight:800;cursor:pointer;display:flex;flex-direction:column;gap:1px;line-height:1.2}
+  .roomTabs .rtab small{font-size:11px;color:var(--muted);font-weight:700}
+  .roomTabs .rtab.on{background:var(--accent);color:#0b0e1a;border-color:var(--accent)}
+  .roomTabs .rtab.on small{color:#0b0e1a}
+  .roomTabs .rtab.wait{border-style:dashed}
+  .roomTabs .rnew{background:#22c55e;color:#0b0e1a;border:none;border-radius:10px;padding:8px 14px;font-size:15px;font-weight:900;cursor:pointer}
+  .roomTabs .rphase{font-size:10px;padding:1px 6px;border-radius:999px;font-weight:800}
+  .roomTabs .rphase.play{background:#22c55e;color:#0b0e1a}
+  .roomTabs .rphase.lobby{background:#64748b;color:#fff}
+  .roomTabs .rphase.ended{background:#facc15;color:#0b0e1a}
+  .waitingPane{padding:10px 14px}
+  .waitingPane h2{margin:0 0 10px}
+  .waitList{display:flex;flex-wrap:wrap;gap:8px}
+  .waitList .wchip{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer}
+  .waitList .wchip:hover{border-color:var(--accent)}
+  .waitList .wchip:active{transform:scale(.96)}
+  .waitList .wempty{color:var(--muted);font-size:13px;padding:10px}
+  .waitHint{color:var(--muted);font-size:12px;margin-top:10px}
+  .leaderBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:linear-gradient(90deg,rgba(250,204,21,.16),transparent);
+    border:1px solid #facc15;border-radius:12px;padding:6px 10px;margin:4px 8px}
+  .leaderBar .lbTitle{font-weight:900;color:#facc15;font-size:14px}
+  .leaderBar button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:800;cursor:pointer}
+  .leaderBar button:active{transform:scale(.96)}
+  .leaderBar .lbmode.on{background:var(--accent);color:#0b0e1a;border-color:var(--accent)}
+  .leaderBar .lbstart{background:#22c55e;color:#0b0e1a;border-color:#22c55e}
+  .leaderBar .lbModes{display:flex;gap:6px}
+  .leaderBar .lbTeamTools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .leaderBar .lbHint,.leaderBar .lbHint2{font-size:11px;color:var(--muted);font-weight:700}
+  .leaderBar .lbMyTeam{display:flex;gap:3px}
+  .leaderBar .lbMyTeam .tc{width:20px;height:20px;border-radius:6px;border:2px solid transparent;cursor:pointer}
+  .leaderBar .lbMyTeam .tc.on{border-color:#fff}
+  .stage{flex:1;display:flex;gap:10px;min-height:0}
+  .mainCol{display:flex;gap:10px;min-height:0;flex:0 0 auto;justify-content:center;order:2}   /* 내 보드: 오른쪽 */
+  .boardWrap{position:relative;display:flex;align-items:center}
+  #board{background:#070a14;border:1px solid var(--line);border-radius:10px;height:100%;max-height:100%;touch-action:none}
+  .side{display:flex;flex-direction:column;gap:10px;width:140px;min-width:120px}
+  .oppWrap{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;order:1;             /* 상대 화면: 왼쪽 */
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px}
+  .oppTitle{margin:0 0 6px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+  #oppGrid{flex:1;overflow:auto;display:grid;gap:6px;align-content:start;justify-content:center}   /* 칸 크기는 JS가 인원수에 맞춰 계산 */
+  .opp{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0}
+  .opp canvas{width:100%;display:block;height:calc(var(--bw,50px) * 2);background:#070a14;border-radius:4px;border:2px solid var(--line)}
+  .opp .on{font-size:12px;font-weight:800;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .opp .ot{display:inline-block;font-size:10px;font-weight:800;line-height:1.3;padding:1px 7px;border-radius:999px}
+  .opp.dead{opacity:.4}
+
+  /* 순위 공용 */
+  .standTeams{display:flex;flex-direction:column;gap:8px;width:min(560px,92vw)}
+  .stTeam{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);
+    border-left:5px solid var(--tc);border-radius:12px;padding:10px 12px}
+  .stTeam .stPos{font-weight:900;color:var(--tc);width:22px;text-align:center}
+  .stTeam .stName{font-weight:800;color:var(--tc);min-width:84px}
+  .stTeam .stNums{font-size:13px;color:var(--muted)} .stTeam .stNums b{color:var(--text);font-size:16px}
+  .rankRows{display:flex;flex-direction:column;gap:4px;width:min(560px,92vw);max-height:48vh;overflow:auto}
+  .rankRow{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;background:var(--panel)}
+  .rankRow.me{background:linear-gradient(90deg,rgba(110,231,255,.22),transparent);border:1px solid var(--accent)}
+  .rankRow .rkPos{width:26px;text-align:center;font-weight:900;color:var(--muted)}
+  .rankRow .rkName{flex:1;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rankRow .rkName.rkDead{color:var(--muted)}
+  .rankRow .rkTeam{font-size:11px;font-weight:800}
+  .rankRow .rkStats{font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap;margin-right:8px}
+  .rankRow .rkScore{font-weight:900;font-variant-numeric:tabular-nums}
+  /* 최종 순위 표 */
+  .rankWrap{width:min(660px,94vw);max-height:52vh;overflow:auto;border-radius:10px;border:1px solid var(--line)}
+  .rankTable{width:100%;border-collapse:collapse;font-size:13px}
+  .rankTable th{position:sticky;top:0;background:var(--panel2);color:var(--muted);font-size:11px;font-weight:800;
+    padding:8px 8px;text-align:center;white-space:nowrap;border-bottom:1px solid var(--line)}
+  .rankTable th:nth-child(2){text-align:left}
+  .rankTable td{padding:8px 8px;text-align:center;background:var(--panel);border-bottom:1px solid rgba(255,255,255,.05);
+    font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+  .rankTable td.cPos{font-weight:900;color:var(--text);width:42px}
+  .rankTable td.cName{text-align:left;font-weight:700;color:var(--text)}
+  .rankTable td.cName.rkDead{color:var(--muted)}
+  .rankTable td.cScore{font-weight:900;color:var(--text);font-size:15px}
+  .rankTable .rkRow.me td{background:rgba(110,231,255,.16)}
+  .rankTable .rkTeam{font-size:11px;font-weight:800}
+
+  /* 학생 최종 결과 모달 */
+  #finalOverlay{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;
+    background:rgba(7,10,20,.94);backdrop-filter:blur(4px);padding:20px}
+  .finalCard{display:flex;flex-direction:column;align-items:center;gap:12px;max-height:94vh;overflow:auto;text-align:center}
+  .finalCard h2{margin:0;font-size:clamp(24px,5vw,38px)}
+  .finalMe{font-size:18px;font-weight:800;color:var(--accent)}
+  @media (max-width:720px){
+    .stage{flex-direction:column}
+    .mainCol{order:1}     /* 모바일에선 내 보드를 위로 */
+    .oppWrap{order:2;flex:1 1 auto;max-height:38vh}
+    .side{width:120px;min-width:108px}
+  }
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
+  .card h3{margin:0 0 6px;font-size:11px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
+  #next{display:block;width:100%;background:#070a14;border-radius:8px}
+  .stat{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin:8px 2px;color:var(--muted)}
+  .stat b{font-size:26px;font-weight:900;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}
+
+  /* 터치 컨트롤 */
+  #pad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:4px}
+  #pad button{height:58px;border-radius:14px;border:1px solid var(--line);background:var(--panel2);color:var(--text);
+    font-size:22px;font-weight:800;display:flex;align-items:center;justify-content:center}
+  #pad button:active{background:#283356}
+  @media(hover:hover) and (pointer:fine){ #pad{opacity:.55} }
+
+  /* 오버레이 (대기/게임오버/카운트다운) */
+  .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+    background:rgba(7,10,20,.82);backdrop-filter:blur(3px);border-radius:10px;text-align:center;padding:20px;z-index:5}
+  .overlay h2{margin:0;font-size:clamp(24px,6vw,40px)}
+  .overlay .big{font-size:clamp(60px,18vw,120px);font-weight:900;line-height:1;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .overlay .sub{color:var(--muted)}
+
+  /* ---------- 상황판(교사) ---------- */
+  #hostScreen{position:fixed;inset:0;display:flex;flex-direction:column;padding:16px;gap:14px}
+  .hostHead{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .hostHead h1{margin:0;font-size:24px;letter-spacing:-.5px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .pill{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:14px;color:var(--muted)}
+  .pill b{color:var(--text)}
+  .joinUrls{display:flex;gap:8px;flex-wrap:wrap}
+  .joinUrls .u{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:18px;font-weight:800;color:var(--accent);cursor:pointer;font-family:inherit}
+  .joinUrls .u:hover{border-color:var(--accent)}
+  #qrOverlay{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(7,10,20,.94);backdrop-filter:blur(4px)}
+  .qrCard{display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px;text-align:center}
+  .qrBox{background:#fff;padding:18px;border-radius:18px;display:flex;align-items:center;justify-content:center;min-width:220px;min-height:220px}
+  .qrBox img{display:block;width:min(62vmin,520px);height:auto;image-rendering:pixelated}
+  .qrUrl{font-size:22px;font-weight:800;color:var(--accent);word-break:break-all;max-width:90vw}
+  .qrHint{color:var(--muted)}
+  .spacer{flex:1}
+  .hbtn{font-size:16px;font-weight:800;padding:12px 22px;border-radius:12px;border:none;color:#06121f}
+  .hbtn.start{background:linear-gradient(90deg,var(--good),#22d3ee)}
+  .hbtn.reset{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+  .hostBody{flex:1;display:flex;gap:16px;min-height:0}
+  #leaderboard{width:300px;min-width:240px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;overflow:auto}
+  #leaderboard h2{margin:0 0 10px;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .lrow{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:10px}
+  .lrow:nth-child(2){background:linear-gradient(90deg,rgba(250,204,21,.18),transparent)}
+  .lrow .pos{width:26px;text-align:center;font-weight:900;color:var(--muted)}
+  .lrow .nm{flex:1;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lrow .sc{font-weight:900;font-variant-numeric:tabular-nums}
+  .lrow.dead{opacity:.45}
+  #grid{flex:1;overflow:auto;display:grid;gap:12px;align-content:start;
+    grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .pcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:6px;align-items:center;position:relative}
+  .pcard.fxHit{animation:fxHit .7s ease}
+  .pcard.fxSend{animation:fxSend .7s ease}
+  @keyframes fxHit{0%,100%{box-shadow:none;border-color:var(--line)}
+    20%{box-shadow:0 0 0 3px #ef4444,0 0 18px #ef4444;border-color:#ef4444}}
+  @keyframes fxSend{0%,100%{box-shadow:none;border-color:var(--line)}
+    20%{box-shadow:0 0 0 3px #3b82f6,0 0 14px #3b82f6;border-color:#3b82f6}}
+  .pcard .fxBadge{position:absolute;top:6px;right:8px;background:#ef4444;color:#fff;font-weight:900;
+    font-size:14px;padding:2px 8px;border-radius:999px;z-index:3;animation:fxBadge .8s ease forwards}
+  @keyframes fxBadge{0%{opacity:0;transform:translateY(6px) scale(.8)}
+    20%{opacity:1;transform:translateY(0) scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
+  .pcard.dead{opacity:.4;filter:grayscale(.6)}
+  .pcard canvas{background:#070a14;border-radius:8px;width:100%}
+  .pcard .pn{font-weight:800;font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pcard .ps{font-size:12px;color:var(--accent);font-weight:800;font-variant-numeric:tabular-nums}
+  #hostOverlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;
+    background:rgba(7,10,20,.9);backdrop-filter:blur(4px);z-index:20;text-align:center;overflow:auto;padding:24px}
+  #hostOverlay .crown{font-size:56px}
+  #hostOverlay .win{font-size:clamp(40px,8vw,80px);font-weight:900;
+    background:linear-gradient(90deg,#fbbf24,#f472b6);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .empty{color:var(--muted);text-align:center;margin-top:40px;grid-column:1/-1}
+
+  /* ---------- 팀전 UI ---------- */
+  .teamTag{font-weight:800;font-size:13px;border:1px solid var(--line);border-radius:999px;padding:2px 12px}
+  #teamBar{display:none;gap:14px}
+  .tcard{flex:1;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--tc);
+    border-radius:12px;padding:6px 14px}
+  .tcard .tname{font-weight:800;color:var(--tc);font-size:15px}
+  .tcard .tscore{font-size:23px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.05}
+  .tcard .tmeta{font-size:11px;color:var(--muted)}
+  .tcard .tbarfill{height:6px;background:var(--panel2);border-radius:999px;margin-top:5px;overflow:hidden}
+  .tcard .tbarfill > span{display:block;height:100%;background:var(--tc);border-radius:999px;transition:width .3s}
+  .teamCtl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .hbtn.settings{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+  .hbtn.settings.on{background:linear-gradient(90deg,var(--accent2),var(--accent));color:#06121f;border-color:transparent}
+  /* ⚙️ 설정 패널 (접기/펼치기) */
+  .hSettings{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:12px;margin-top:4px}
+  .teamCtl select{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:3px 8px;font-size:15px;font-weight:800;margin-left:6px}
+  .teamCtl textarea{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:14px;font-weight:700;width:170px;resize:vertical;font-family:inherit}
+  .teamCtl textarea:focus{outline:none;border-color:var(--accent)}
+  /* 학생 사이드 키워드 목록 */
+  #wordCard #wordList{display:flex;flex-direction:column;gap:5px;max-height:34vh;overflow:auto}
+  .wordItem{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:8px;background:var(--panel2);
+    border:1px solid var(--line);font-weight:800;font-size:14px;letter-spacing:1px;transition:background .3s,border-color .3s}
+  .wordItem.cur{border-color:var(--accent);background:rgba(110,231,255,.10)}
+  .wordItem.done{background:rgba(52,211,153,.18);border-color:var(--good)}
+  .wordItem .ch{color:var(--muted);opacity:.5;transition:color .25s,opacity .25s}
+  .wordItem .ch.got{color:var(--good);opacity:1}
+  .wordItem.done .ch{color:var(--good);opacity:1}
+  .wordItem .wi-ico{font-size:13px}
+  .wordItem .wi-prog{margin-left:auto;font-size:11px;color:var(--muted);font-weight:700}
+  .wordItem.done .wi-prog{color:var(--good)}
+  /* 수집 순간 연출(보드 위에 잠깐 떴다 사라짐) — 크고 오래 */
+  .kwToast{position:absolute;top:10%;left:50%;transform:translateX(-50%);
+    background:rgba(7,10,20,.9);border:1px solid var(--line);border-radius:14px;
+    padding:10px 18px;font-weight:900;font-size:24px;color:var(--good);
+    pointer-events:none;opacity:0;z-index:6;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+  .kwToast.show{animation:kwpop 1.6s ease}
+  .kwToast.big{font-size:30px;color:#fbbf24}
+  .kwToast.big.show{animation:kwpop 2.4s ease}
+  @keyframes kwpop{0%{opacity:0;transform:translateX(-50%) translateY(12px) scale(.9)}
+    12%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+    82%{opacity:1}100%{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+  /* 공격 알림(맞음=빨강 / 때림=주황) — 크고 오래 */
+  .atkToast{position:absolute;left:50%;transform:translateX(-50%);bottom:12%;
+    border-radius:12px;padding:9px 16px;font-weight:900;font-size:20px;
+    pointer-events:none;opacity:0;z-index:6;white-space:nowrap;border:2px solid transparent;box-shadow:0 6px 24px rgba(0,0,0,.4)}
+  .atkToast.hit{top:28%;bottom:auto;color:#fecaca;background:rgba(220,38,38,.3);border-color:#ef4444}
+  .atkToast.send{color:#bfdbfe;background:rgba(37,99,235,.32);border-color:#3b82f6}
+  .atkToast.show{animation:kwpop 2s ease}
+  /* 시작/종료 카운트다운(화면 가운데 큰 숫자, 플레이 가림 없음) */
+  .bigCount{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:45}
+  #bigCount{position:absolute}
+  .bigCount span{font-size:clamp(90px,22vw,220px);font-weight:900;color:#fff;
+    text-shadow:0 0 30px rgba(110,231,255,.8),0 8px 30px rgba(0,0,0,.6);animation:countpop .9s ease}
+  .bigCount.end span{color:#fb7185;text-shadow:0 0 30px rgba(251,113,133,.85),0 8px 30px rgba(0,0,0,.6)}
+  @keyframes countpop{0%{opacity:0;transform:scale(.5)}30%{opacity:1;transform:scale(1.1)}100%{opacity:.85;transform:scale(1)}}
+  /* 교사 공격 기록 */
+  #atkLog{display:flex;flex-direction:column;gap:4px}
+  .logRow{font-size:13px;font-weight:700;color:var(--muted);background:var(--panel2);border:1px solid var(--line);
+    border-radius:8px;padding:5px 8px;display:flex;align-items:center;gap:6px;animation:logIn .3s ease}
+  .logRow b{color:var(--text)} .logRow .amt{margin-left:auto;color:#fb7185;font-weight:900}
+  @keyframes logIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  .hbtn.finish{background:linear-gradient(90deg,#fb923c,#ef4444);color:#fff}
+  /* 줄 지움/콤보/테트리스 연출 */
+  .lineFx{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);
+    font-weight:900;font-size:26px;color:#6ee7ff;text-shadow:0 2px 14px rgba(0,0,0,.7);
+    pointer-events:none;opacity:0;z-index:7;white-space:nowrap}
+  .lineFx.show{animation:lineFx 1.1s ease}
+  .lineFx.combo{color:#fbbf24;font-size:30px}
+  .lineFx.tetris{color:#f472b6;font-size:34px}
+  @keyframes lineFx{0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}
+    20%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}
+    68%{opacity:1;transform:translate(-50%,-55%) scale(1)}
+    100%{opacity:0;transform:translate(-50%,-85%) scale(1)}}
+  /* 학생 보드 세로칸(보드 + 공격 기록) */
+  .boardCol{display:flex;flex-direction:column;gap:6px;min-height:0;align-items:center}
+  /* 공격 기록: 내 보드 폭에 맞춤, 2줄만 보이고 상하 스크롤 */
+  #atkLogBar{display:none;flex-direction:column;gap:4px;overflow-y:auto;overflow-x:hidden;
+    width:100%;max-height:60px;padding:5px 7px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-sizing:border-box}
+  #atkLogBar .logChip{flex:0 0 auto;font-size:12px;font-weight:800;border-radius:8px;padding:3px 8px;
+    border:1px solid transparent;animation:logIn .25s ease;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #atkLogBar .logChip.hit{color:#fecaca;background:rgba(220,38,38,.22);border-color:#ef4444}
+  #atkLogBar .logChip.send{color:#bfdbfe;background:rgba(37,99,235,.22);border-color:#3b82f6}
+  /* 결과 보기 버튼: 내 보드 위쪽 가운데 */
+  #showResultBtn{position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:9;
+    background:linear-gradient(90deg,var(--accent2),var(--accent));color:#06121f;
+    font-weight:800;font-size:13px;border:none;border-radius:999px;padding:7px 16px;cursor:pointer;
+    box-shadow:0 4px 16px rgba(0,0,0,.4)}
+  .hbtn.assign{background:linear-gradient(90deg,var(--accent2),var(--accent))}
+  .pcard{cursor:pointer}
+  .pcard .pt{font-size:11px;font-weight:800;padding:2px 10px;border-radius:999px;background:var(--panel2);color:var(--muted)}
+  /* 학생 카드 클릭 → 팀 선택 메뉴 */
+  .tpBackdrop{position:fixed;inset:0;z-index:9998}
+  .teamPicker{position:fixed;z-index:9999;background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:12px;box-shadow:0 14px 40px rgba(0,0,0,.55);min-width:190px;max-width:240px}
+  .teamPicker .tpTitle{font-size:12px;color:var(--muted);font-weight:800;margin-bottom:8px;
+    max-width:216px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .teamPicker .tpRow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .teamPicker .tpBtn{border:2px solid transparent;border-radius:999px;padding:7px 13px;font-weight:800;font-size:13px;
+    cursor:pointer;color:#0b0e1a;line-height:1}
+  .teamPicker .tpBtn.none{background:var(--panel2);color:var(--text);border-color:var(--line)}
+  .teamPicker .tpBtn.cur{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+  .teamPicker .tpClose{width:100%;background:var(--panel2);color:var(--text);border:1px solid var(--line);
+    border-radius:9px;padding:7px;font-weight:800;cursor:pointer}
+  /* 교사: 팀 변경 토스트 */
+  .hToast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);z-index:70;
+    background:var(--accent);color:#06121f;font-weight:900;font-size:15px;padding:10px 20px;border-radius:999px;
+    box-shadow:0 8px 24px rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+  .hToast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ================= 학생: 이름 입력 ================= -->
+<div id="nameScreen">
+  <h1>실시간 테트리스 배틀</h1>
+  <p>이름을 입력하고 입장하세요</p>
+  <input id="nameInput" maxlength="14" placeholder="내 이름" autocomplete="off" />
+  <button class="btn" id="joinBtn">입장하기</button>
+  <p id="nameErr" style="color:var(--bad);min-height:18px"></p>
+</div>
+
+<!-- ================= 학생: 게임 ================= -->
+<div id="playScreen" class="hidden">
+  <div class="topbar">
+    <span class="me" id="meName">-</span>
+    <span class="roomTag" id="meRoom"></span>
+    <span class="teamTag" id="meTeam"></span>
+    <span class="rank" id="meRank"></span>
+  </div>
+  <div id="leaderBar" class="leaderBar hidden">
+    <span class="lbTitle">👑 방장</span>
+    <div class="lbModes">
+      <button id="lbSolo" class="lbmode">개인전</button>
+      <button id="lbTeam" class="lbmode">팀전</button>
+    </div>
+    <div id="lbTeamTools" class="lbTeamTools hidden">
+      <span class="lbHint">자동:</span>
+      <button class="lbauto" data-n="2">2팀</button>
+      <button class="lbauto" data-n="3">3팀</button>
+      <button class="lbauto" data-n="4">4팀</button>
+      <span class="lbHint">내 팀:</span><span id="lbMyTeam" class="lbMyTeam"></span>
+      <span class="lbHint2">학생 카드를 눌러 팀 지정</span>
+    </div>
+    <button id="lbStart" class="lbstart">▶ 시작</button>
+    <button id="lbReset" class="lbreset hidden">🔄 다시</button>
+  </div>
+  <div class="stage">
+    <div class="mainCol">
+      <div class="boardCol">
+        <div class="boardWrap">
+          <canvas id="board" width="200" height="400"></canvas>
+          <div id="kwToast" class="kwToast"></div>
+          <div id="atkToast" class="atkToast"></div>
+          <div id="bigCount" class="bigCount hidden"><span id="bigCountNum"></span></div>
+          <div id="lineFx" class="lineFx"></div>
+          <button id="showResultBtn" class="hidden">📊 결과 보기</button>
+          <div class="overlay" id="playOverlay">
+            <h2 id="ovTitle">대기 중</h2>
+            <div class="big hidden" id="ovBig"></div>
+            <div class="sub" id="ovSub">선생님이 시작하면 자동으로 시작돼요</div>
+          </div>
+        </div>
+        <div id="atkLogBar"></div>
+      </div>
+      <div class="side">
+        <div class="card">
+          <h3>다음 5개</h3>
+          <canvas id="next" width="96" height="240"></canvas>
+        </div>
+        <div class="card">
+          <div class="stat"><span>점수</span><b id="score">0</b></div>
+          <div class="stat"><span>줄</span><b id="lines">0</b></div>
+          <div class="stat"><span>레벨</span><b id="level">1</b></div>
+        </div>
+        <div class="card hidden" id="wordCard">
+          <h3>📚 키워드 <span id="wordProg" style="color:var(--muted);font-weight:700"></span></h3>
+          <div id="wordList"></div>
+        </div>
+      </div>
+    </div>
+    <div class="oppWrap">
+      <h3 class="oppTitle">다른 플레이어 <span id="oppCount"></span></h3>
+      <div id="oppGrid"></div>
+    </div>
+  </div>
+  <div id="pad">
+    <button data-k="left">◀</button>
+    <button data-k="rotate">⟳</button>
+    <button data-k="right">▶</button>
+    <button data-k="down">▼</button>
+    <button data-k="drop">⤓</button>
+  </div>
+</div>
+
+<div id="finalOverlay" class="hidden">
+  <div class="finalCard">
+    <h2 id="finalTitle">최종 결과</h2>
+    <div id="finalTeams"></div>
+    <div id="finalMe" class="finalMe"></div>
+    <div id="finalList"></div>
+    <button class="btn" onclick="document.getElementById('finalOverlay').classList.add('hidden')">닫기</button>
+  </div>
+</div>
+
+<!-- ================= 상황판(교사) ================= -->
+<div id="hostScreen" class="hidden">
+  <div class="hostHead">
+    <h1>🎮 테트리스 배틀 (방 관리)</h1>
+    <span class="pill">접속 <b id="hCount">0</b>명</span>
+    <span class="pill" id="hConn" style="font-weight:800">🔴 연결 중…</span>
+    <div class="spacer"></div>
+    <button class="hbtn assign hidden" id="hShowResult">📊 결과 보기</button>
+    <button class="hbtn settings" id="hSettingsBtn">⚙️ 설정</button>
+  </div>
+  <!-- 학생을 어느 방으로 보낼지 선택하는 팝업 -->
+  <div id="roomPicker" class="teamPicker hidden">
+    <div class="tpTitle" id="rpTitle">방 선택</div>
+    <div class="tpRow" id="rpRow"></div>
+    <button class="tpClose" id="rpClose">닫기</button>
+  </div>
+  <!-- ⚙️ 설정 패널 -->
+  <div id="hSettings" class="hSettings hidden">
+    <div class="joinUrls" id="joinUrls"><span class="pill">학생 접속 주소 불러오는 중…</span></div>
+    <div class="teamCtl">
+      <span class="pill">📚 학습 키워드 <span style="color:var(--muted);font-weight:700">(지금 보는 방에 적용 · 한 줄에 하나)</span></span>
+      <textarea id="hKeyword" rows="3" placeholder="광합성&#10;엽록체&#10;기공"></textarea>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="hbtn assign" id="hSetKw">키워드 등록</button>
+        <button class="hbtn reset" id="hClearKw">키워드 지우기</button>
+      </div>
+      <span class="pill" id="kwNow" style="color:var(--muted)">등록된 키워드 없음</span>
+    </div>
+  </div>
+  <!-- 방 탭 (➕ 만들기 / 각 방 / 대기실) -->
+  <div id="roomTabs" class="roomTabs"></div>
+  <!-- 대기실 화면 -->
+  <div id="waitingPane" class="waitingPane hidden">
+    <h2>🕒 대기실 <span id="waitCount" style="color:var(--muted);font-size:14px"></span></h2>
+    <div id="waitList" class="waitList"></div>
+    <div class="waitHint">학생을 눌러 방에 배정하세요. (방이 없으면 위 ➕로 먼저 만드세요)</div>
+  </div>
+  <!-- 방 보기 화면 -->
+  <div id="roomView">
+    <div id="teamBar"></div>
+    <div class="hostBody">
+      <div id="leaderboard">
+        <h2>순위</h2><div id="lbList"></div>
+        <h2 style="margin-top:14px">⚔️ 공격 기록</h2><div id="atkLog"></div>
+      </div>
+      <div id="grid"><div class="empty">학생이 이 방에 들어오면 보드가 나타납니다.</div></div>
+    </div>
+  </div>
+</div>
+<div id="hostCount" class="bigCount hidden"><span id="hostCountNum"></span></div>
+<div id="hostOverlay" class="hidden">
+  <div class="crown">👑</div>
+  <div class="win" id="winName">우승!</div>
+  <div class="pill" id="winSub"></div>
+  <div id="hostFinalTeams"></div>
+  <div id="hostFinalList"></div>
+  <button class="hbtn reset" style="margin-top:12px" onclick="document.getElementById('hostOverlay').classList.add('hidden')">닫기</button>
+</div>
+<div id="qrOverlay" class="hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+  <div class="qrCard">
+    <div id="qrBox" class="qrBox"></div>
+    <div id="qrUrl" class="qrUrl"></div>
+    <div class="qrHint">학생들이 휴대폰 카메라로 스캔하면 바로 입장해요</div>
+    <button class="hbtn reset" onclick="document.getElementById('qrOverlay').classList.add('hidden')">닫기</button>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   공통: WebSocket 연결
+   ============================================================ */
+const IS_HOST = new URLSearchParams(location.search).has('host');
+const WS_URL = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
+let ws, myId = null;
+
+function setConn(ok){
+  const el = document.getElementById('hConn'); if(!el) return;
+  el.textContent = ok ? '🟢 연결됨' : '🔴 연결 끊김';
+  el.style.color = ok ? 'var(--good)' : 'var(--bad)';
+}
+function connect(onOpen){
+  ws = new WebSocket(WS_URL);
+  ws.onopen = ()=>{ setConn(true); onOpen && onOpen(); };
+  ws.onmessage = (e)=>{ let m; try{m=JSON.parse(e.data)}catch{return} onServer(m); };
+  ws.onclose = ()=>{ setConn(false); setTimeout(()=>connect(onOpen), 1000); }; // 끊기면 재접속
+}
+function send(obj){ if(ws && ws.readyState===1) ws.send(JSON.stringify(obj)); }
+
+/* ============================================================
+   테트리스 색상/모양 (학생 모드 + 상황판 렌더 공용)
+   int: 0빈칸 1=I 2=J 3=L 4=O 5=S 6=T 7=Z 8=쓰레기
+   ============================================================ */
+const COLOR = ['', '#22d3ee','#3b82f6','#f59e0b','#eab308','#22c55e','#a855f7','#ef4444','#5b6472'];
+const TI = { I:1, J:2, L:3, O:4, S:5, T:6, Z:7, G:8 };
+const COLS = 10, ROWS = 20;
+
+/* ============================================================
+   팀 팔레트 — 최대 8팀. 교사가 상황판에서 팀 수(2~8)를 고르면
+   이 목록의 앞에서부터 그만큼 사용됩니다. 이름·색은 자유롭게 수정하세요.
+   ============================================================ */
+const TEAM_PALETTE = [
+  { id:'red',    name:'레드',   color:'#ef4444' },  // 또렷한 빨강(핑크와 분리)
+  { id:'blue',   name:'블루',   color:'#3b82f6' },  // 진한 파랑
+  { id:'green',  name:'그린',   color:'#22c55e' },  // 순수 초록(시안과 분리)
+  { id:'gold',   name:'골드',   color:'#facc15' },  // 밝은 노랑(오렌지와 분리)
+  { id:'purple', name:'퍼플',   color:'#a855f7' },  // 선명한 보라
+  { id:'orange', name:'오렌지', color:'#f97316' },  // 진한 주황
+  { id:'cyan',   name:'시안',   color:'#06b6d4' },  // 청록(그린/블루와 분리)
+  { id:'pink',   name:'핑크',   color:'#ec4899' },  // 마젠타 핑크(레드와 분리)
+];
+const TEAM_BY_ID = Object.fromEntries(TEAM_PALETTE.map(t => [t.id, t]));
+
+/* ============== 효과음 (Web Audio, 파일 없음) ============== */
+let _actx=null;
+function _ac(){ if(!_actx){ try{ _actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } } if(_actx && _actx.state==='suspended') _actx.resume(); return _actx; }
+function _tone(freq,dur,type,vol,delay,glideTo){
+  const c=_ac(); if(!c) return; const t0=c.currentTime+(delay||0);
+  const osc=c.createOscillator(), g=c.createGain();
+  osc.type=type||'square'; osc.frequency.setValueAtTime(freq,t0);
+  if(glideTo) osc.frequency.exponentialRampToValueAtTime(glideTo,t0+dur);
+  g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(vol||0.2,t0+0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  osc.connect(g); g.connect(c.destination); osc.start(t0); osc.stop(t0+dur+0.02);
+}
+function _noise(dur,vol,delay){
+  const c=_ac(); if(!c) return; const t0=c.currentTime+(delay||0);
+  const buf=c.createBuffer(1,Math.max(1,Math.floor(c.sampleRate*dur)),c.sampleRate); const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*(1-i/d.length);
+  const src=c.createBufferSource(); src.buffer=buf;
+  const g=c.createGain(); g.gain.setValueAtTime(vol||0.2,t0); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  const f=c.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1800;
+  src.connect(f); f.connect(g); g.connect(c.destination); src.start(t0); src.stop(t0+dur);
+}
+let SFX_ON=true;
+const SFX={
+  move:    ()=> _tone(330,0.05,'square',0.162),                                                  // 이동(10%↓)
+  rotate:  ()=> _tone(520,0.06,'square',0.162,0,660),                                            // 회전(10%↓)
+  lock:    ()=> { _tone(140,0.08,'triangle',0.28); _noise(0.05,0.12); },                         // 착지 A
+  clear:   ()=> { _tone(523,0.1,'square',0.2,0); _tone(659,0.1,'square',0.2,0.06); _tone(784,0.14,'square',0.2,0.12); }, // 줄삭제 A
+  tetris:  ()=> { [523,659,784,1047].forEach((f,i)=> _tone(f,0.16,'square',0.22,i*0.07)); },     // 테트리스 A
+  combo1:  ()=> _tone(523,0.12,'square',0.22),
+  combo2:  ()=> { _tone(523,0.1,'square',0.2); _tone(659,0.12,'square',0.22,0.08); },
+  combo3:  ()=> { _tone(523,0.09,'square',0.2); _tone(659,0.09,'square',0.2,0.07); _tone(880,0.14,'square',0.24,0.14); },
+  atk_send:()=> _tone(1300,0.26,'sawtooth',0.20,0,200),                                          // 공격 보냄 B(레이저)
+  atk_hit: ()=> { _tone(170,0.10,'sawtooth',0.24,0); _tone(150,0.14,'sawtooth',0.24,0.12); },    // 공격 받음 D(경고)
+  count:   ()=> _tone(440,0.12,'square',0.25),                                                   // 카운트 삐
+  go:      ()=> { _tone(523,0.12,'square',0.26,0); _tone(784,0.2,'square',0.28,0.1); },          // 시작
+  over:    ()=> { [440,392,330,262].forEach((f,i)=> _tone(f,0.2,'triangle',0.26,i*0.13)); },     // 게임오버 B
+  win:     ()=> { const seq=[[523,0.15],[659,0.15],[784,0.15],[1047,0.3],[988,0.15],[1047,0.5]]; let t=0; seq.forEach(([f,d])=>{ _tone(f,d,'square',0.22,t); t+=d*0.85; }); }, // 우승 C
+};
+function sfx(n){ if(!SFX_ON) return; const f=SFX[n]; if(f){ try{ f(); }catch(e){} } }
+// 첫 사용자 입력(터치/클릭/키)에서 오디오 잠금 해제
+['pointerdown','keydown','touchstart'].forEach(ev=> window.addEventListener(ev, ()=>_ac()));
+
+
+function drawCell(ctx, x, y, cell, cs){
+  if(!cell) return;
+  ctx.fillStyle = COLOR[cell];
+  ctx.fillRect(x*cs, y*cs, cs, cs);
+  ctx.fillStyle = 'rgba(255,255,255,.18)';
+  ctx.fillRect(x*cs, y*cs, cs, cs*0.18);              // 윗면 하이라이트
+  ctx.strokeStyle = 'rgba(0,0,0,.35)';
+  ctx.strokeRect(x*cs+.5, y*cs+.5, cs-1, cs-1);
+}
+// 보드를 가벼운 문자열로 인코딩/디코딩 (셀당 1글자, 0~8)
+function encodeBoard(grid){ let s=''; for(let y=0;y<ROWS;y++){ const r=grid[y]; for(let x=0;x<COLS;x++) s += (r[x]||0); } return s; }
+function decodeBoard(s){ const g=[]; for(let y=0;y<ROWS;y++){ const row=[]; for(let x=0;x<COLS;x++){ const v=s.charCodeAt(y*COLS+x)-48; row.push(v>=0&&v<=8?v:0); } g.push(row); } return g; }
+function toGrid(b){ return (typeof b==='string') ? decodeBoard(b) : b; }
+
+// 우승 발표 문구 (동점이면 공동 우승). {text, color, tie}
+function winnerInfo(m){
+  if(m.teamMode){
+    const ws = (m.winnerTeams && m.winnerTeams.length) ? m.winnerTeams : (m.winnerTeam ? [m.winnerTeam] : []);
+    const names = ws.map(id => (TEAM_BY_ID[id] ? TEAM_BY_ID[id].name : id));
+    if(ws.length > 1) return { text: names.join('·') + ' 팀 공동 우승! 🏆', color:null, tie:true };
+    if(ws.length === 1) return { text: names[0] + ' 팀 우승! 🏆', color:(TEAM_BY_ID[ws[0]]||{}).color||null, tie:false };
+    return { text:'게임 종료', color:null, tie:false };
+  } else {
+    const ns = (m.winnerNames && m.winnerNames.length) ? m.winnerNames : (m.players && m.players[0] ? [m.players[0].name] : []);
+    if(ns.length > 1) return { text: ns.join('·') + ' 공동 우승! 🏆', color:null, tie:true };
+    if(ns.length === 1) return { text: ns[0] + ' 우승! 🏆', color:null, tie:false };
+    return { text:'게임 종료', color:null, tie:false };
+  }
+}
+
+// 팀 순위표 HTML (평균/합산/생존, 동점이면 공동 등수)
+function buildTeamStandings(teams){
+  const real = (teams||[]).filter(t=>t.team);
+  if(real.length < 2) return '';
+  let pos=0, prev=null;
+  return '<div class="standTeams">' + real.map((t,i)=>{
+    if(t.avg !== prev){ pos=i+1; prev=t.avg; }           // 평균 같으면 공동 등수
+    const info = TEAM_BY_ID[t.team] || {name:t.team, color:'#8b95b5'};
+    return `<div class="stTeam" style="--tc:${info.color}">
+      <span class="stPos">${pos}</span>
+      <span class="stName">${esc(info.name)} 팀</span>
+      <span class="stNums">평균 <b>${t.avg}</b> · 합산 ${t.score} · 생존 ${t.alive}/${t.players}</span>
+    </div>`;
+  }).join('') + '</div>';
+}
+// 개인 순위 리스트 HTML (점수 같으면 공동 등수, 내 행 강조)
+function buildRankList(plist, meId){
+  let pos=0, prev=null;
+  const rows = (plist||[]).map((p,i)=>{
+    if(p.score!==prev){ pos=i+1; prev=p.score; }          // 점수 같으면 공동 등수
+    const info = TEAM_BY_ID[p.team];
+    const me = p.id===meId ? ' me' : '';
+    const dead = p.alive ? '' : ' rkDead';
+    const team = info ? ` <span class="rkTeam" style="color:${info.color}">${esc(info.name)}</span>` : '';
+    return `<tr class="rkRow${me}">`
+      + `<td class="cPos">${pos}</td>`
+      + `<td class="cName${dead}">${esc(p.name)}${team}</td>`
+      + `<td>${p.atk||0}</td><td>${p.combo||0}</td><td>${p.cbonus||0}</td><td>${p.wbonus||0}</td>`
+      + `<td class="cScore">${p.score}</td></tr>`;
+  }).join('');
+  return `<div class="rankWrap"><table class="rankTable">`
+    + `<thead><tr><th>순위</th><th>닉네임</th><th>공격</th><th>최대콤보</th><th>콤보보너스</th><th>단어보너스</th><th>점수</th></tr></thead>`
+    + `<tbody>${rows}</tbody></table></div>`;
+}
+
+// 20x10 보드(문자열 또는 2D배열)를 캔버스에 그리기 (상황판/상대화면 공용)
+function renderBoard(canvas, board){
+  const ctx = canvas.getContext('2d');
+  const cs = canvas.width / COLS;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = '#070a14'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  const grid = toGrid(board); if(!grid) return;
+  for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) drawCell(ctx,x,y,grid[y][x],cs);
+}
+
+/* ============================================================
+   여기부터 모드 분기
+   ============================================================ */
+if (IS_HOST) initHost(); else initPlayer();
+
+/* ============================================================
+   상황판(교사) 모드
+   ============================================================ */
+function initHost(){
+  document.getElementById('hostScreen').classList.remove('hidden');
+  document.getElementById('nameScreen').classList.add('hidden');   // 교사 화면에선 학생 입장창 숨김
+  document.getElementById('playScreen').classList.add('hidden');
+  const grid = document.getElementById('grid');
+  const lbList = document.getElementById('lbList');
+  const cards = new Map(); // id -> {el, canvas}
+  let viewRoom = '', onWaitTab = false, lastRooms = { rooms: [], waiting: [] };
+
+  // 학생 접속 주소 표시
+  //  - 클라우드 배포(공개 주소)면: 현재 공개 주소 하나만 안내
+  //  - 로컬(교사 PC) 실행이면: 같은 와이파이용 LAN IP 안내
+  fetch('/info').then(r=>r.json()).then(info=>{
+    const box = document.getElementById('joinUrls');
+    const host = location.hostname;
+    const isLocal = host==='localhost' || host==='127.0.0.1' || host==='' ||
+      /^10\./.test(host) || /^192\.168\./.test(host) || /^172\.(1[6-9]|2\d|3[01])\./.test(host);
+    let list;
+    if(isLocal){
+      list = (info.ips||[]).map(ip=>'http://'+ip+':'+info.port);   // 같은 와이파이 접속 주소
+    } else {
+      list = [location.origin];                                    // 배포된 공개 주소
+    }
+    box.innerHTML = '<span class="pill">학생 접속 →</span>' +
+      (list.length ? list.map(u=>'<button class="u" data-url="'+esc(u)+'">📱 '+esc(u)+'</button>').join('') :
+        '<span class="pill">주소를 못 찾았어요</span>');
+    box.querySelectorAll('.u').forEach(b=> b.onclick = ()=> showQR(b.dataset.url));
+  }).catch(()=>{});
+
+  /* ---- QR 코드 (학생 접속 주소를 스캔으로) ---- */
+  // QR 생성 라이브러리는 CDN에서 불러옵니다(배포 환경은 인터넷 연결됨). 막히면 주소 글자로 안내.
+  const QR_SRCS = [
+    'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',
+  ];
+  function loadQrLib(cb){
+    if(window.qrcode) return cb(true);
+    let i=0;
+    (function next(){
+      if(i>=QR_SRCS.length) return cb(false);
+      const s=document.createElement('script'); s.src=QR_SRCS[i++];
+      s.onload=()=> window.qrcode ? cb(true) : next();
+      s.onerror=next;
+      document.head.appendChild(s);
+    })();
+  }
+  function showQR(url){
+    const ov=document.getElementById('qrOverlay'), box=document.getElementById('qrBox');
+    document.getElementById('qrUrl').textContent = url;
+    ov.classList.remove('hidden');
+    box.innerHTML = '<div style="color:#555">QR 만드는 중…</div>';
+    loadQrLib((ok)=>{
+      if(!ok || !window.qrcode){ box.innerHTML = '<div style="color:#555">QR을 못 만들었어요.<br>아래 주소를 알려주세요.</div>'; return; }
+      try{
+        const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+        box.innerHTML = qr.createImgTag(10, 2);
+        const img = box.querySelector('img'); if(img){ img.removeAttribute('width'); img.removeAttribute('height'); }
+      }catch(e){ box.innerHTML = '<div style="color:#555">QR 생성 오류</div>'; }
+    });
+  }
+  loadQrLib(()=>{});   // 미리 불러두기
+
+  document.getElementById('hShowResult').onclick = ()=> document.getElementById('hostOverlay').classList.remove('hidden');
+
+  // ⚙️ 설정 패널 열기/닫기
+  document.getElementById('hSettingsBtn').onclick = ()=>{
+    const panel = document.getElementById('hSettings');
+    const open = panel.classList.toggle('hidden') === false;
+    document.getElementById('hSettingsBtn').classList.toggle('on', open);
+  };
+
+  // 학습 키워드 등록/지우기 (지금 보는 방에 적용)
+  const kwInput = document.getElementById('hKeyword');
+  function setKw(){
+    if(!viewRoom){ alert('먼저 방 탭을 선택하세요.'); return; }
+    const words = kwInput.value.split('\n').map(s=>s.trim()).filter(Boolean);
+    send({type:'setkeyword', words, room:viewRoom});
+  }
+  document.getElementById('hSetKw').onclick = setKw;
+  document.getElementById('hClearKw').onclick = ()=>{ if(!viewRoom){ alert('먼저 방 탭을 선택하세요.'); return; } kwInput.value=''; send({type:'setkeyword', words:[], room:viewRoom}); };
+  // 카드에 팀 색 입히기(렌더와 즉시반영에서 공용)
+  function styleCard(el, ptEl, team){
+    const ti = TEAM_BY_ID[team];
+    if(ti){
+      el.style.borderColor = ti.color;
+      el.style.background  = 'color-mix(in srgb,'+ti.color+' 16%, var(--panel))';
+      el.style.boxShadow   = '0 0 0 2px '+ti.color+', 0 6px 18px color-mix(in srgb,'+ti.color+' 35%, transparent)';
+      ptEl.textContent = ti.name + ' 팀';
+      ptEl.style.background = ti.color; ptEl.style.color = '#0b0e1a';
+    } else {
+      el.style.borderColor=''; el.style.background=''; el.style.boxShadow='';
+      ptEl.textContent = '미배정'; ptEl.style.background=''; ptEl.style.color='';
+    }
+  }
+  // (팀 배정은 각 방 방장이 합니다. 교사는 방 배정만.)
+  function hostToast(text){
+    let t = document.getElementById('hToast');
+    if(!t){ t = document.createElement('div'); t.id='hToast'; t.className='hToast'; document.body.appendChild(t); }
+    t.textContent = text; t.classList.add('show');
+    clearTimeout(t._tm); t._tm = setTimeout(()=>t.classList.remove('show'), 1400);
+  }
+  // 학생 카드/칩 클릭 → 어느 방으로 보낼지 선택
+  function closeRoomPicker(){
+    document.getElementById('roomPicker').classList.add('hidden');
+    const bd=document.getElementById('rpBackdrop'); if(bd) bd.style.display='none';
+  }
+  function openRoomPicker(e, id){
+    const tp=document.getElementById('roomPicker'), row=document.getElementById('rpRow');
+    if(tp.parentElement !== document.body) document.body.appendChild(tp);
+    document.getElementById('rpTitle').textContent = (nameById[id]||'학생') + ' → 어느 방으로?';
+    row.innerHTML='';
+    (lastRooms.rooms||[]).forEach(r=>{
+      const b=document.createElement('button'); b.className='tpBtn'; b.textContent=r.name;
+      b.onclick=()=>{ send({type:'assignroom', id, room:r.id}); hostToast((nameById[id]||'학생')+' → '+r.name); closeRoomPicker(); };
+      row.appendChild(b);
+    });
+    const nb=document.createElement('button'); nb.className='tpBtn none'; nb.textContent='대기실로';
+    nb.onclick=()=>{ send({type:'assignroom', id, room:''}); hostToast((nameById[id]||'학생')+' → 대기실'); closeRoomPicker(); };
+    row.appendChild(nb);
+    if(!(lastRooms.rooms||[]).length){ const hint=document.createElement('div'); hint.style.cssText='color:var(--muted);font-size:12px;margin-top:6px'; hint.textContent='먼저 ➕로 방을 만들어 주세요'; row.appendChild(hint); }
+    let bd=document.getElementById('rpBackdrop');
+    if(!bd){ bd=document.createElement('div'); bd.id='rpBackdrop'; bd.className='tpBackdrop'; bd.onclick=closeRoomPicker; document.body.appendChild(bd); }
+    bd.style.display='block'; tp.classList.remove('hidden');
+    const px=Math.min((e&&e.clientX)||120, window.innerWidth-210);
+    const py=Math.min((e&&e.clientY)||120, window.innerHeight-220);
+    tp.style.left=Math.max(8,px)+'px'; tp.style.top=Math.max(8,py)+'px';
+  }
+  document.getElementById('rpClose').onclick=closeRoomPicker;
+  const teamRank = (t)=>{ const i = TEAM_PALETTE.findIndex(x=>x.id===t); return i<0 ? 99 : i; }; // 그리드 묶음 순서
+
+  window.onServer = (m)=>{
+    if(m.type==='welcome'){ myId=m.id; return; }
+    if(m.type==='rooms'){
+      lastRooms=m;
+      const total = (m.rooms||[]).reduce((s,r)=>s+r.count,0) + ((m.waiting||[]).length);
+      document.getElementById('hCount').textContent = total;
+      renderTabs(); if(onWaitTab) renderWaiting();
+      return;
+    }
+    if(m.type==='world'){ if(!onWaitTab){ viewRoom=m.room; renderHost(m); } return; }
+    if(m.type==='gameover'){ if(!onWaitTab && m.room===viewRoom){ hostHideCount(); showWinner(m); } return; }
+    if(m.type==='keywords'){
+      const n = (m.words||[]).length;
+      document.getElementById('kwNow').textContent = n ? ('등록됨: '+m.words.join(', ')) : '등록된 키워드 없음';
+      return;
+    }
+    if(m.type==='attackfx'){ if(!onWaitTab) flashAttack(m.fromId, m.toId, m.amount); return; }
+    if(m.type==='start'){ if(!onWaitTab) hostRunCount(3, false); return; }
+    if(m.type==='endcountdown'){ if(!onWaitTab) hostRunCount(m.sec||5, true); return; }
+  };
+
+  /* ---- 방 탭 / 대기실 / 방 만들기 ---- */
+  function renderTabs(){
+    const bar=document.getElementById('roomTabs'); bar.innerHTML='';
+    const mk=document.createElement('button'); mk.className='rnew'; mk.textContent='➕ 방 만들기'; mk.onclick=createRoom; bar.appendChild(mk);
+    (lastRooms.rooms||[]).forEach(r=>{
+      const b=document.createElement('button'); b.className='rtab'+((!onWaitTab&&r.id===viewRoom)?' on':'');
+      const phaseTxt=r.phase==='playing'?'진행중':(r.phase==='ended'?'종료':'대기');
+      const phaseCls=r.phase==='playing'?'play':(r.phase==='ended'?'ended':'lobby');
+      b.innerHTML='<span>'+esc(r.name)+' <span class="rphase '+phaseCls+'">'+phaseTxt+'</span></span><small>'+(r.mode==='team'?'팀전':'개인전')+' · '+r.count+'명</small>';
+      b.onclick=()=> selectRoom(r.id);
+      bar.appendChild(b);
+    });
+    const wc=(lastRooms.waiting||[]).length;
+    const wb=document.createElement('button'); wb.className='rtab wait'+(onWaitTab?' on':'');
+    wb.innerHTML='<span>🕒 대기실</span><small>'+wc+'명</small>';
+    wb.onclick=selectWaiting; bar.appendChild(wb);
+  }
+  function selectRoom(rid){
+    onWaitTab=false; viewRoom=rid; send({type:'viewroom', room:rid});
+    document.getElementById('waitingPane').classList.add('hidden');
+    document.getElementById('roomView').classList.remove('hidden');
+    renderTabs();
+  }
+  function selectWaiting(){
+    onWaitTab=true; send({type:'viewroom', room:''});
+    document.getElementById('roomView').classList.add('hidden');
+    document.getElementById('waitingPane').classList.remove('hidden');
+    renderTabs(); renderWaiting();
+  }
+  function renderWaiting(){
+    const list=document.getElementById('waitList'); const w=lastRooms.waiting||[];
+    document.getElementById('waitCount').textContent='('+w.length+'명)';
+    if(!w.length){ list.innerHTML='<div class="wempty">대기 중인 학생이 없어요.</div>'; return; }
+    list.innerHTML='';
+    w.forEach(p=>{ nameById[p.id]=p.name; const c=document.createElement('button'); c.className='wchip'; c.textContent=p.name;
+      c.onclick=(e)=> openRoomPicker(e, p.id); list.appendChild(c); });
+  }
+  function createRoom(){
+    const def='방 '+((lastRooms.rooms||[]).length+1);
+    const name=prompt('방 이름을 정하세요 (예: 1모둠, A반)', def);
+    if(name===null) return;
+    send({type:'createroom', name:(name.trim()||def), mode:'solo'});
+    onWaitTab=false;
+    document.getElementById('waitingPane').classList.add('hidden');
+    document.getElementById('roomView').classList.remove('hidden');
+  }
+
+  // 교사 화면 카운트다운(시작 3·2·1·시작 / 종료 5·4·3·2·1·종료)
+  let hostCountTimer=null;
+  function hostRunCount(sec, isEnd){
+    const wrap=document.getElementById('hostCount'), num=document.getElementById('hostCountNum');
+    if(!wrap||!num) return;
+    wrap.classList.toggle('end', !!isEnd); wrap.classList.remove('hidden');
+    let n=sec;
+    const tick=()=>{
+      if(n>0){ num.textContent=n; num.style.animation='none'; void num.offsetWidth; num.style.animation=''; n--; hostCountTimer=setTimeout(tick,1000); }
+      else { num.textContent=isEnd?'종료!':'시작!'; num.style.animation='none'; void num.offsetWidth; num.style.animation=''; hostCountTimer=setTimeout(hostHideCount,1000); }
+    };
+    clearTimeout(hostCountTimer); tick();
+  }
+  function hostHideCount(){ clearTimeout(hostCountTimer); const w=document.getElementById('hostCount'); if(w){ w.classList.add('hidden'); w.classList.remove('end'); } }
+
+  const nameById = {};   // id -> 이름 (공격 기록용)
+  function flashAttack(fromId, toId, amount){
+    const v = cards.get(toId), a = cards.get(fromId);
+    if(v){ v.el.classList.remove('fxHit'); void v.el.offsetWidth; v.el.classList.add('fxHit');
+      setTimeout(()=>v.el.classList.remove('fxHit'), 700);
+      if(amount){ const b=document.createElement('div'); b.className='fxBadge'; b.textContent='+'+amount;
+        v.el.appendChild(b); setTimeout(()=>b.remove(), 800); } }
+    if(a){ a.el.classList.remove('fxSend'); void a.el.offsetWidth; a.el.classList.add('fxSend');
+      setTimeout(()=>a.el.classList.remove('fxSend'), 700); }
+    addAtkLog(nameById[fromId]||'?', nameById[toId]||'?', amount);
+  }
+  function addAtkLog(from, to, amount){
+    const log=document.getElementById('atkLog'); if(!log) return;
+    const row=document.createElement('div'); row.className='logRow';
+    row.innerHTML='<b>'+esc(from)+'</b> → '+esc(to)+'<span class="amt">'+amount+'줄</span>';
+    log.prepend(row);
+    while(log.children.length>8) log.removeChild(log.lastChild);   // 최근 8개만
+  }
+
+  function renderHost(m){
+    // 팀 점수판: 팀전이고 배정된 팀이 있으면 팔레트 순으로 표시
+    const tb = document.getElementById('teamBar');
+    const present = (m.teams||[]).filter(t=>t.team).sort((a,b)=>teamRank(a.team)-teamRank(b.team));
+    if(m.mode==='team' && present.length){
+      const max = Math.max(1, ...present.map(t=>t.score));
+      tb.style.display = 'flex';
+      tb.innerHTML = present.map(t=>{
+        const info = TEAM_BY_ID[t.team] || {name:t.team, color:'#8b95b5'};
+        return `<div class="tcard" style="--tc:${info.color}">
+          <div class="tname">${esc(info.name)} 팀</div>
+          <div class="tscore">${t.score}</div>
+          <div class="tmeta">생존 ${t.alive}/${t.players}명 · ${t.lines}줄</div>
+          <div class="tbarfill"><span style="width:${Math.round(t.score/max*100)}%"></span></div>
+        </div>`;
+      }).join('');
+    } else { tb.style.display='none'; }
+
+    // 순위표
+    lbList.innerHTML = m.players.map((p,i)=>`
+      <div class="lrow ${p.alive?'':'dead'}">
+        <div class="pos">${i+1}</div>
+        <div class="nm">${esc(p.name)}</div>
+        <div class="sc">${p.score}</div>
+      </div>`).join('') || '<div class="empty" style="margin-top:10px">대기 중…</div>';
+
+    // 보드 그리드 (없는 학생 카드 제거)
+    const ids = new Set(m.players.map(p=>p.id));
+    for(const [id,c] of cards){ if(!ids.has(id)){ c.el.remove(); cards.delete(id); } }
+    if(m.players.length===0){
+      if(!grid.querySelector('.empty')) grid.innerHTML='<div class="empty">학생들이 접속하면 여기에 보드가 나타납니다.</div>';
+      return;
+    } else { const e=grid.querySelector('.empty'); if(e) e.remove(); }
+
+    // 개인전: 접속 순서 고정 / 팀전: 팀별로 묶고 팀 안에서는 접속 순서 고정 (점수로 자리 안 바뀜)
+    const order = m.players.slice().sort((a,b)=>
+      (teamRank(a.team)-teamRank(b.team)) || (a.id - b.id));
+
+    order.forEach(p=>{
+      nameById[p.id] = p.name;
+      let c = cards.get(p.id);
+      if(!c){
+        const el = document.createElement('div'); el.className='pcard'; el.dataset.pid=p.id;
+        const cv = document.createElement('canvas'); cv.width=100; cv.height=200;
+        const pn = document.createElement('div'); pn.className='pn';
+        const pt = document.createElement('div'); pt.className='pt';
+        const ps = document.createElement('div'); ps.className='ps';
+        el.append(cv,pn,pt,ps); grid.appendChild(el);
+        el.onclick = (e)=> openRoomPicker(e, +el.dataset.pid); // 클릭 → 방 이동
+        c = {el, canvas:cv, pn, pt, ps}; cards.set(p.id, c);
+      }
+      c.el.className = 'pcard' + (p.alive?'':' dead');
+      c.el.dataset.team = p.team || '';
+      styleCard(c.el, c.pt, p.team || '');
+      c.pn.textContent = p.name;
+      c.ps.textContent = p.score + '점 · ' + p.lines + '줄';
+      renderBoard(c.canvas, p.board);
+      grid.appendChild(c.el); // 정렬 순서 반영
+    });
+  }
+
+  function showWinner(m){
+    const nameEl = document.getElementById('winName');
+    const subEl = document.getElementById('winSub');
+    const wi = winnerInfo(m);
+    nameEl.textContent = wi.text;
+    if(wi.color){   // 단독 팀 우승 → 팀 색
+      nameEl.style.background='none'; nameEl.style.webkitBackgroundClip='border-box';
+      nameEl.style.backgroundClip='border-box'; nameEl.style.color=wi.color;
+    } else {        // 개인전/공동 우승 → 기본 그라데이션
+      nameEl.style.background=''; nameEl.style.webkitBackgroundClip='';
+      nameEl.style.backgroundClip=''; nameEl.style.color='';
+    }
+    if(m.teamMode){
+      const ws = (m.winnerTeams && m.winnerTeams.length) ? m.winnerTeams : (m.winnerTeam?[m.winnerTeam]:[]);
+      const tm = (m.teams||[]).find(t=>t.team===ws[0]);
+      subEl.textContent = tm ? ('평균 ' + tm.avg + '점' + (wi.tie ? ' 공동 1위' : (' · 합산 ' + tm.score + ' · 생존 ' + tm.alive + '/' + tm.players))) : '';
+    } else {
+      const w = m.players && m.players[0];
+      subEl.textContent = w ? (w.score + '점' + (wi.tie ? ' 공동 1위' : '')) : '';
+    }
+    document.getElementById('hostFinalTeams').innerHTML = buildTeamStandings(m.teams);
+    document.getElementById('hostFinalList').innerHTML = buildRankList(m.players, null);
+    document.getElementById('hostOverlay').classList.remove('hidden');
+    document.getElementById('hShowResult').classList.remove('hidden');   // 결과 다시 보기 버튼
+  }
+
+  connect(()=> send({type:'join', role:'host', name:'HOST'}));
+}
+
+/* ============================================================
+   학생 모드
+   ============================================================ */
+function initPlayer(){
+  const nameScreen = document.getElementById('nameScreen');
+  const playScreen = document.getElementById('playScreen');
+  const nameInput = document.getElementById('nameInput');
+  const board = document.getElementById('board');
+  const bctx = board.getContext('2d');
+  const nextCv = document.getElementById('next');
+  const nctx = nextCv.getContext('2d');
+
+  let myName = '';
+  let state = 'name'; // name | lobby(대기실) | roomlobby(방 안 대기) | playing | dead
+  let myRoom = null, roomName = '', roomMode = 'solo', roomPhase = 'lobby', amLeader = false;
+  let G = null;       // 게임 상태
+  let raf=0, lastT=0, acc=0, sendAcc=0;
+  let myRank=0, myTotal=0;   // 최근 순위 (죽었을 때 표시용)
+  const pressed = new Set();
+
+  // 캔버스 셀 크기
+  const CS = board.width / COLS;
+
+  let myTeam = null;   // 팀은 교사가 정해줍니다 (서버가 'team' 메시지로 알려줌)
+
+  function setMyTeam(team){
+    myTeam = team || null;
+    const tag = document.getElementById('meTeam'), t = TEAM_BY_ID[myTeam];
+    if(t){ tag.textContent = t.name + ' 팀'; tag.style.color = t.color; tag.style.borderColor = t.color; }
+    else { tag.textContent = ''; }
+    // 내 보드 테두리도 팀 색으로 (내가 무슨 팀인지 바로 보이게)
+    if(t){ board.style.borderColor = t.color; board.style.borderWidth = '4px'; board.style.boxShadow = '0 0 0 1px '+t.color; }
+    else { board.style.borderColor = ''; board.style.borderWidth = ''; board.style.boxShadow = ''; }
+    if(state==='roomlobby'){
+      const tt = TEAM_BY_ID[myTeam];
+      if(amLeader) setOverlay('방장이에요 👑','', '위에서 개인전/팀전을 정하고 ▶시작을 누르세요');
+      else setOverlay('대기 중','', (tt? (tt.name+' 팀 · ') : '') + '방장이 시작하면 시작돼요');
+    }
+    const box=document.getElementById('lbMyTeam'); if(box) [...box.children].forEach(b=> b.classList.toggle('on', b.dataset.team===myTeam));
+  }
+
+  /* ---- 입장 → 대기실 ---- */
+  function tryJoin(){
+    const n = nameInput.value.trim();
+    if(!n){ document.getElementById('nameErr').textContent='이름을 입력하세요'; return; }
+    myName = n;
+    document.getElementById('meName').textContent = myName;
+    nameScreen.classList.add('hidden');
+    playScreen.classList.remove('hidden');
+    state='lobby';
+    setOverlay('대기실','', '선생님이 방에 넣어줄 때까지 잠시 기다려요');
+    requestAnimationFrame(fit);
+    send({type:'join', role:'player', name:myName});
+  }
+  document.getElementById('joinBtn').onclick = tryJoin;
+  nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') tryJoin(); });
+
+  /* ---- 서버 메시지 ---- */
+  window.onServer = (m)=>{
+    if(m.type==='welcome'){ myId=m.id; return; }
+    if(m.type==='waiting'){ enterWaitingRoom(); return; }
+    if(m.type==='roomset'){ enterRoom(m); return; }
+    if(m.type==='start'){ startCountdown(); return; }
+    if(m.type==='reset'){ hideBigCount(); backToRoomLobby(); return; }
+    if(m.type==='team'){ setMyTeam(m.team); return; }
+    if(m.type==='garbage'){ if(G && state==='playing'){ addGarbage(m.amount); showAtkToast('🛡️ '+esc(m.from||'상대')+' 공격! +'+m.amount+'줄', 'hit'); sfx('atk_hit'); } addMyLog('🛡️ '+esc(m.from||'상대')+' → 나 '+m.amount+'줄','hit'); return; }
+    if(m.type==='attacked'){ showAtkToast('⚔️ '+esc(m.to||'상대')+'에게 +'+m.amount+'줄!', 'send'); sfx('atk_send'); addMyLog('⚔️ 나 → '+esc(m.to||'상대')+' '+m.amount+'줄','send'); return; }
+    if(m.type==='gameover'){ hideBigCount(); onGameOver(m); return; }
+    if(m.type==='endcountdown'){ runBigCount(m.sec||5, true); return; }
+    if(m.type==='world'){ if(!myRoom) return; roomMode=m.mode; roomPhase=m.phase; amLeader=(m.leaderId===myId); updateLeaderBar(); onWorld(m); return; }
+    if(m.type==='keywords'){ setKeywords(m.words); return; }
+  };
+
+  /* ---- 대기실 / 방 입장 ---- */
+  function enterWaitingRoom(){
+    myRoom=null; roomName=''; amLeader=false; state='lobby';
+    cancelAnimationFrame(raf); G=null; clearBoard(); clearMyLog(); hideResultUI();
+    setMyTeam(null);
+    document.getElementById('meRoom').textContent='';
+    updateLeaderBar();
+    setOverlay('대기실','', '선생님이 방에 넣어줄 때까지 잠시 기다려요');
+  }
+  function enterRoom(m){
+    myRoom=m.room; roomName=m.name||''; roomMode=m.mode||'solo'; roomPhase='lobby';
+    document.getElementById('meRoom').textContent = roomName;
+    setMyTeam(null);
+    backToRoomLobby();
+  }
+  function backToRoomLobby(){
+    state='roomlobby'; cancelAnimationFrame(raf); G=null;
+    clearBoard(); clearMyLog(); hideResultUI();
+    updateLeaderBar();
+    const t = TEAM_BY_ID[myTeam];
+    if(amLeader) setOverlay('방장이에요 👑','', '위에서 개인전/팀전을 정하고 ▶시작을 누르세요');
+    else setOverlay('대기 중','', (t? (t.name+' 팀 · ') : '') + '방장이 시작하면 시작돼요');
+  }
+
+  /* ---- 방장 조작바 ---- */
+  function updateLeaderBar(){
+    const bar = document.getElementById('leaderBar');
+    const show = amLeader && state!=='playing' && (roomPhase==='lobby' || roomPhase==='ended');
+    bar.classList.toggle('hidden', !show);
+    if(!show) return;
+    document.getElementById('lbSolo').classList.toggle('on', roomMode!=='team');
+    document.getElementById('lbTeam').classList.toggle('on', roomMode==='team');
+    document.getElementById('lbTeamTools').classList.toggle('hidden', roomMode!=='team');
+    document.getElementById('lbStart').classList.toggle('hidden', roomPhase!=='lobby');
+    document.getElementById('lbReset').classList.toggle('hidden', roomPhase!=='ended');
+    buildMyTeamButtons();
+  }
+  function buildMyTeamButtons(){
+    const box=document.getElementById('lbMyTeam');
+    if(roomMode!=='team'){ box.innerHTML=''; return; }
+    if(box.childElementCount===0){
+      TEAM_PALETTE.forEach(t=>{
+        const b=document.createElement('div'); b.className='tc'; b.style.background=t.color; b.title=t.name; b.dataset.team=t.id;
+        b.onclick=()=> send({type:'assign', id:myId, team:t.id});
+        box.appendChild(b);
+      });
+    }
+    [...box.children].forEach(b=> b.classList.toggle('on', b.dataset.team===myTeam));
+  }
+  document.getElementById('lbSolo').onclick=()=> send({type:'setmode', mode:'solo'});
+  document.getElementById('lbTeam').onclick=()=> send({type:'setmode', mode:'team'});
+  document.querySelectorAll('#lbTeamTools .lbauto').forEach(b=> b.onclick=()=>{ const n=+b.dataset.n; send({type:'autoassign', teams:TEAM_PALETTE.slice(0,n).map(t=>t.id)}); });
+  document.getElementById('lbStart').onclick=()=> send({type:'start'});
+  document.getElementById('lbReset').onclick=()=> send({type:'reset'});
+
+  /* ---- 방장: 학생 카드 눌러 팀 지정 (팝업) ---- */
+  function openPTeamPicker(id, nm){
+    let tp=document.getElementById('pTeamPicker');
+    if(!tp){ tp=document.createElement('div'); tp.id='pTeamPicker'; tp.className='teamPicker hidden'; document.body.appendChild(tp); }
+    if(tp.parentElement!==document.body) document.body.appendChild(tp);
+    let bd=document.getElementById('pTpBackdrop');
+    if(!bd){ bd=document.createElement('div'); bd.id='pTpBackdrop'; bd.className='tpBackdrop'; bd.style.display='none'; bd.onclick=closePTeamPicker; document.body.appendChild(bd); }
+    tp.innerHTML='';
+    const title=document.createElement('div'); title.className='tpTitle'; title.textContent=(nm||'학생')+' → 팀 선택'; tp.appendChild(title);
+    const row=document.createElement('div'); row.className='tpRow';
+    TEAM_PALETTE.forEach(t=>{ const b=document.createElement('button'); b.textContent=t.name; b.style.background=t.color; b.style.color='#0b0e1a';
+      b.onclick=()=>{ send({type:'assign', id, team:t.id}); closePTeamPicker(); }; row.appendChild(b); });
+    const none=document.createElement('button'); none.textContent='미배정'; none.onclick=()=>{ send({type:'assign', id, team:''}); closePTeamPicker(); }; row.appendChild(none);
+    tp.appendChild(row);
+    bd.style.display='block'; tp.classList.remove('hidden');
+    tp.style.left='50%'; tp.style.top='50%'; tp.style.transform='translate(-50%,-50%)';
+  }
+  function closePTeamPicker(){ const tp=document.getElementById('pTeamPicker'); if(tp) tp.classList.add('hidden'); const bd=document.getElementById('pTpBackdrop'); if(bd) bd.style.display='none'; }
+
+  /* ===== 학습 키워드 수집 (여러 단어, 순서대로) ===== */
+  let kwList = [];     // 등록된 단어들
+  let kwDone = [];     // 단어별 완성 여부
+  let kwIdx = -1;      // 지금 모으는 단어 index
+  let curReq = {}, curHave = {};   // 현재 단어 글자별 필요/보유 개수
+  function setKeywords(words){
+    kwList = Array.isArray(words) ? words.slice(0,20) : [];
+    resetAllCollection();
+    renderWordList();
+    document.getElementById('wordCard').classList.toggle('hidden', kwList.length===0);
+  }
+  function resetAllCollection(){ kwDone = kwList.map(()=>false); pointToCurrent(); }
+  function pointToCurrent(){
+    kwIdx = kwDone.findIndex(d=>!d);
+    curReq = {}; curHave = {};
+    if(kwIdx>=0){ for(const ch of kwList[kwIdx]){ curReq[ch]=(curReq[ch]||0)+1; } for(const ch in curReq) curHave[ch]=0; }
+  }
+  function curComplete(){ for(const ch in curReq){ if((curHave[ch]||0)<curReq[ch]) return false; } return kwIdx>=0; }
+  // 현재 단어에서 아직 필요한 글자 중 랜덤 (없으면 null → 조각에 글자 안 붙음)
+  function pickLetter(){
+    if(kwIdx<0) return null;
+    const need = Object.keys(curReq).filter(ch=>(curHave[ch]||0)<curReq[ch]);
+    return need.length ? need[(Math.random()*need.length)|0] : null;
+  }
+  function collectLetter(ch){
+    if(kwIdx<0 || curReq[ch]==null) return;          // 현재 단어 글자가 아니면 무시
+    if((curHave[ch]||0) < curReq[ch]) curHave[ch]++;
+    if(curComplete()){
+      const word = kwList[kwIdx];
+      kwDone[kwIdx] = true;
+      G.score += 500; G.wordBonus = (G.wordBonus||0) + 500; updateStats(); sendState();    // 단어 완성 보너스
+      showKwToast('🎉 ‘'+esc(word)+'’ 완성! +500', true);
+      pointToCurrent();                               // 다음 단어로
+    } else {
+      showKwToast('✏️ ‘'+esc(ch)+'’ 획득', false);
+    }
+    renderWordList();
+  }
+  let kwToastTimer=null;
+  function showKwToast(html, big){
+    const el=document.getElementById('kwToast'); if(!el) return;
+    el.innerHTML=html;
+    el.className='kwToast show'+(big?' big':'');
+    void el.offsetWidth;                 // 리플로우 → 애니메이션 재시작
+    clearTimeout(kwToastTimer);
+    kwToastTimer=setTimeout(()=>{ el.className='kwToast'; }, big?2400:1600);
+  }
+  let atkToastTimer=null;
+  function showAtkToast(html, kind){     // kind: 'hit'(맞음) | 'send'(때림)
+    const el=document.getElementById('atkToast'); if(!el) return;
+    el.innerHTML=html;
+    el.className='atkToast '+kind+' show';
+    void el.offsetWidth;
+    clearTimeout(atkToastTimer);
+    atkToastTimer=setTimeout(()=>{ el.className='atkToast '+kind; }, 2000);
+  }
+  let bigCountTimer=null;
+  function runBigCount(sec, isEnd){
+    const wrap=document.getElementById('bigCount'), num=document.getElementById('bigCountNum');
+    if(!wrap||!num) return;
+    wrap.classList.toggle('end', !!isEnd);
+    wrap.classList.remove('hidden');
+    let n=sec;
+    const tick=()=>{
+      if(n>0){ num.textContent=n; num.style.animation='none'; void num.offsetWidth; num.style.animation=''; n--; bigCountTimer=setTimeout(tick,1000); }
+      else { num.textContent = isEnd ? '종료!' : '시작!'; num.style.animation='none'; void num.offsetWidth; num.style.animation=''; bigCountTimer=setTimeout(hideBigCount, 1000); }
+    };
+    clearTimeout(bigCountTimer); tick();
+  }
+  function hideBigCount(){ clearTimeout(bigCountTimer); const w=document.getElementById('bigCount'); if(w){ w.classList.add('hidden'); w.classList.remove('end'); } }
+  // 하단 공격 기록(나와 관련된 것만, 최근 4개)
+  function addMyLog(text, kind){
+    const bar=document.getElementById('atkLogBar'); if(!bar) return;
+    const wasHidden = bar.style.display==='none' || !bar.style.display;
+    bar.style.display='flex';
+    const chip=document.createElement('div'); chip.className='logChip '+kind; chip.textContent=text;
+    bar.prepend(chip);                       // 최신이 위로
+    bar.scrollTop=0;
+    while(bar.children.length>50) bar.removeChild(bar.lastChild);  // 메모리 보호용 상한
+    if(wasHidden) fit();                      // 로그가 처음 생기면 보드 크기 재조정
+  }
+  function clearMyLog(){ const bar=document.getElementById('atkLogBar'); if(bar){ bar.innerHTML=''; bar.style.display='none'; fit(); } }
+  let lineFxTimer=null;
+  function showLineFx(text, kind){
+    const el=document.getElementById('lineFx'); if(!el) return;
+    el.textContent=text; el.className='lineFx '+kind+' show';
+    void el.offsetWidth; clearTimeout(lineFxTimer);
+    lineFxTimer=setTimeout(()=>{ el.className='lineFx '+kind; }, 1100);
+  }
+  function renderWordList(){
+    const list = document.getElementById('wordList');
+    if(!list) return;
+    const doneCnt = kwDone.filter(Boolean).length;
+    const prog = document.getElementById('wordProg');
+    if(prog) prog.textContent = kwList.length ? (doneCnt+'/'+kwList.length) : '';
+    list.innerHTML = kwList.map((w,i)=>{
+      const done = kwDone[i], cur = (i===kwIdx);
+      const ico = done ? '✅' : (cur ? '✏️' : '🔒');
+      const seen = {}; let have = 0; const chars = [...w];
+      const html = chars.map(ch=>{
+        seen[ch]=(seen[ch]||0)+1;
+        let got = done ? true : (cur ? (curHave[ch]||0) >= seen[ch] : false);
+        if(got && cur && !done) have++;
+        return '<span class="ch'+(got?' got':'')+'">'+esc(ch)+'</span>';
+      }).join('');
+      let sub = (cur && !done) ? ('<span class="wi-prog">'+have+'/'+chars.length+'</span>') : '';
+      const cls = 'wordItem' + (done?' done':'') + (cur?' cur':'');
+      return '<div class="'+cls+'"><span class="wi-ico">'+ico+'</span><span class="wi-word">'+html+'</span>'+sub+'</div>';
+    }).join('');
+  }
+
+  function hideResultUI(){
+    document.getElementById('finalOverlay').classList.add('hidden');
+    document.getElementById('showResultBtn').classList.add('hidden');
+    lastFinal = null;
+  }
+  function toWaiting(){
+    state='waiting'; cancelAnimationFrame(raf); G=null;
+    clearBoard(); clearMyLog(); hideResultUI();
+    const t = TEAM_BY_ID[myTeam];
+    setOverlay('대기 중','', t ? (t.name + ' 팀 · 선생님이 시작하면 시작돼요') : '선생님이 시작하면 자동으로 시작돼요');
+  }
+
+  /* ---- 카운트다운 후 시작 ---- */
+  function startCountdown(){
+    if(state==='playing') return;
+    hideResultUI();
+    let n=3;
+    setOverlay('', String(n), ''); sfx('count');
+    const iv = setInterval(()=>{
+      n--;
+      if(n>0){ setOverlay('', String(n), ''); sfx('count'); }
+      else if(n===0){ setOverlay('', 'GO!', ''); sfx('go'); }
+      else { clearInterval(iv); hideOverlay(); beginGame(); }
+    }, 700);
+  }
+
+  /* ============== 테트리스 엔진 ============== */
+  const SHAPES = {
+    I:[[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+    J:[[1,0,0],[1,1,1],[0,0,0]],
+    L:[[0,0,1],[1,1,1],[0,0,0]],
+    O:[[1,1],[1,1]],
+    S:[[0,1,1],[1,1,0],[0,0,0]],
+    T:[[0,1,0],[1,1,1],[0,0,0]],
+    Z:[[1,1,0],[0,1,1],[0,0,0]],
+  };
+  const TYPES=['I','J','L','O','S','T','Z'];
+
+  function newGame(){
+    return {
+      grid: Array.from({length:ROWS},()=>Array(COLS).fill(0)),
+      letters: Array.from({length:ROWS},()=>Array(COLS).fill(null)),   // 칸별 글자
+      cur:null, queue:[], bag:[], score:0, lines:0, level:1, down:false, over:false, combo:-1,
+      atkSent:0, maxCombo:0, wordBonus:0, comboBonusTotal:0,   // 통계: 공격줄, 최대콤보, 단어보너스, 콤보보너스
+    };
+  }
+  function bagNext(g){
+    if(g.bag.length===0){ g.bag = TYPES.slice(); for(let i=g.bag.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[g.bag[i],g.bag[j]]=[g.bag[j],g.bag[i]];} }
+    return g.bag.pop();
+  }
+  function ensureQueue(g){ while(g.queue.length < 7) g.queue.push(bagNext(g)); }   // 다음 5개 + 여유
+  function spawn(g){
+    ensureQueue(g);
+    const type = g.queue.shift();
+    ensureQueue(g);
+    const mat = SHAPES[type].map(r=>r.slice());
+    const piece = { type, mat, r:0, c:((COLS - mat[0].length)>>1), lc:null };
+    // 키워드(현재 단어)가 있으면 절반 확률로 한 칸에 글자 부착
+    if(kwIdx>=0 && Math.random() < 0.5){
+      const ch = pickLetter();
+      if(ch){
+        const cells=[];
+        for(let y=0;y<mat.length;y++) for(let x=0;x<mat[y].length;x++) if(mat[y][x]) cells.push({x,y});
+        const cell = cells[(Math.random()*cells.length)|0];
+        piece.lc = { x:cell.x, y:cell.y, ch };
+      }
+    }
+    if(collide(g, piece)){ g.over=true; return; }
+    g.cur = piece;
+  }
+  function collide(g, p){
+    for(let y=0;y<p.mat.length;y++) for(let x=0;x<p.mat[y].length;x++){
+      if(!p.mat[y][x]) continue;
+      const gx=p.c+x, gy=p.r+y;
+      if(gx<0||gx>=COLS||gy>=ROWS) return true;
+      if(gy>=0 && g.grid[gy][gx]) return true;
+    }
+    return false;
+  }
+  function rotateCW(mat){
+    const n=mat.length, m=mat[0].length;
+    const out=Array.from({length:m},()=>Array(n).fill(0));
+    for(let y=0;y<n;y++) for(let x=0;x<m;x++) out[x][n-1-y]=mat[y][x];
+    return out;
+  }
+  function tryRotate(g){
+    const p=g.cur, old=p.mat, oldLc=p.lc, n=p.mat.length;
+    p.mat = rotateCW(p.mat);
+    if(p.lc) p.lc = { x:n-1-p.lc.y, y:p.lc.x, ch:p.lc.ch };   // 글자 칸도 같이 회전
+    for(const dx of [0,-1,1,-2,2]){ p.c+=dx; if(!collide(g,p)){ sfx('rotate'); return; } p.c-=dx; }
+    p.mat = old; p.lc = oldLc; // 실패 시 원복
+  }
+  function lock(g){
+    const p=g.cur, t=TI[p.type];
+    for(let y=0;y<p.mat.length;y++) for(let x=0;x<p.mat[y].length;x++){
+      if(p.mat[y][x]){ const gy=p.r+y, gx=p.c+x; if(gy>=0){ g.grid[gy][gx]=t;
+        if(p.lc && p.lc.x===x && p.lc.y===y) g.letters[gy][gx]=p.lc.ch; } }
+    }
+    g.down=false;          // 조각이 놓이면 소프트 드롭 해제 → 다음 조각은 정상 속도
+    sfx('lock');
+    clearLines(g);
+    spawn(g);
+  }
+  function clearLines(g){
+    let cleared=0;
+    for(let y=ROWS-1;y>=0;y--){
+      if(g.grid[y].every(v=>v!==0)){
+        for(let x=0;x<COLS;x++){ const ch=g.letters[y][x]; if(ch) collectLetter(ch); }  // 글자 수집
+        g.grid.splice(y,1); g.grid.unshift(Array(COLS).fill(0));
+        g.letters.splice(y,1); g.letters.unshift(Array(COLS).fill(null));
+        cleared++; y++;
+      }
+    }
+    if(cleared>0){
+      g.combo++;                               // 연속 줄 지우기 → 콤보 증가
+      const base=[0,100,300,500,800][cleared]*g.level;
+      const comboBonus = g.combo>0 ? g.combo*50*g.level : 0;   // 콤보 보너스 점수
+      g.score += base + comboBonus; g.lines+=cleared;
+      g.comboBonusTotal += comboBonus;         // 통계: 콤보 보너스 누적
+      g.level=Math.floor(g.lines/10)+1;
+      const atk=[0,0,1,2,4][cleared] + (g.combo>0 ? Math.min(g.combo,4) : 0);  // 기본 공격 + 콤보 추가 공격(최대 +4)
+      if(atk>0) send({type:'attack', amount:atk});
+      g.atkSent += atk;                          // 통계: 보낸 공격줄 누적
+      if(g.combo > g.maxCombo) g.maxCombo = g.combo;  // 통계: 최대 콤보
+      // 화면 연출
+      if(cleared===4){ showLineFx('TETRIS! +'+(base+comboBonus), 'tetris'); sfx('tetris'); }
+      else if(g.combo>=1){ if(g.combo>0) showLineFx(g.combo+' COMBO! +'+(base+comboBonus), 'combo'); else if(cleared>=2) showLineFx('+'+base, 'line'); sfx(g.combo>=3?'combo3':g.combo>=2?'combo2':'combo1'); }
+      else { if(cleared>=2) showLineFx('+'+base, 'line'); sfx('clear'); }
+    } else {
+      g.combo=-1;                              // 줄 못 지움 → 콤보 끊김
+    }
+  }
+  function addGarbage(n){
+    const g=G;
+    // 위쪽 n줄에 블록이 있으면 밀려서 탈락
+    for(let y=0;y<n;y++) if(g.grid[y].some(v=>v!==0)){ g.over=true; }
+    for(let i=0;i<n;i++){
+      g.grid.shift(); g.letters.shift();
+      const row=Array(COLS).fill(8);
+      row[(Math.random()*COLS)|0]=0;          // 구멍 하나
+      g.grid.push(row); g.letters.push(Array(COLS).fill(null));
+    }
+    if(g.cur){ while(collide(g,g.cur)){ g.cur.r--; if(g.cur.r<-3){ g.over=true; break; } } }
+    if(g.over) endGame();
+  }
+  function hardDrop(g){
+    let d=0; while(!collide(g,{...g.cur,r:g.cur.r+1})){ g.cur.r++; d++; }
+    g.score+=d*2; lock(g);
+  }
+  function softStep(g){
+    if(!collide(g,{...g.cur,r:g.cur.r+1})){ g.cur.r++; if(g.down) g.score+=1; }
+    else lock(g);
+  }
+  function move(g,dx){ g.cur.c+=dx; if(collide(g,g.cur)) g.cur.c-=dx; else sfx('move'); }
+
+  /* ============== 루프 / 렌더 ============== */
+  function beginGame(){
+    state='playing'; G=newGame(); spawn(G);
+    document.getElementById('leaderBar').classList.add('hidden');  // 게임 중엔 방장바 숨김
+    closePTeamPicker();
+    resetAllCollection(); renderWordList();   // 키워드 수집 초기화(처음 단어부터)
+    clearMyLog();                              // 공격 기록 비우기
+    fit();   // 시작 시 보드 크기 보정
+    document.getElementById('score').textContent=0;
+    document.getElementById('lines').textContent=0;
+    document.getElementById('level').textContent=1;
+    lastT=performance.now(); acc=0; sendAcc=0;
+    cancelAnimationFrame(raf); raf=requestAnimationFrame(loop);
+  }
+  function dropInterval(g){ return Math.max(80, 800 - (g.level-1)*65); }
+
+  function loop(t){
+    if(state!=='playing'){ return; }
+    const g=G; const dt=t-lastT; lastT=t; acc+=dt; sendAcc+=dt;
+    const iv = dropInterval(g);            // 중력은 항상 일정 (소프트 드롭은 버튼으로 따로 처리)
+    while(acc>=iv){ softStep(g); acc-=iv; if(g.over) break; }
+    if(g.over){ endGame(); return; }
+    draw();
+    // 점수/보드 전송 (200ms마다)
+    if(sendAcc>=200){ sendAcc=0; sendState(); updateStats(); }
+    raf=requestAnimationFrame(loop);
+  }
+
+  function snapshot(){
+    const g=G; const out=g.grid.map(r=>r.slice());
+    if(g.cur){ const p=g.cur,t=TI[p.type];
+      for(let y=0;y<p.mat.length;y++) for(let x=0;x<p.mat[y].length;x++)
+        if(p.mat[y][x]){ const gy=p.r+y,gx=p.c+x; if(gy>=0&&gy<ROWS&&gx>=0&&gx<COLS) out[gy][gx]=t; }
+    }
+    return out;
+  }
+  function sendState(){ send({type:'state', score:G.score, lines:G.lines, atk:G.atkSent, combo:G.maxCombo, wbonus:G.wordBonus, cbonus:G.comboBonusTotal, board:encodeBoard(snapshot())}); }
+  function updateStats(){
+    document.getElementById('score').textContent=G.score;
+    document.getElementById('lines').textContent=G.lines;
+    document.getElementById('level').textContent=G.level;
+  }
+
+  function draw(){
+    const g=G;
+    bctx.clearRect(0,0,board.width,board.height);
+    bctx.fillStyle='#070a14'; bctx.fillRect(0,0,board.width,board.height);
+    // 격자
+    bctx.strokeStyle='rgba(255,255,255,.04)';
+    for(let x=1;x<COLS;x++){ bctx.beginPath();bctx.moveTo(x*CS,0);bctx.lineTo(x*CS,board.height);bctx.stroke(); }
+    for(let y=1;y<ROWS;y++){ bctx.beginPath();bctx.moveTo(0,y*CS);bctx.lineTo(board.width,y*CS);bctx.stroke(); }
+    // 쌓인 블록
+    for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) drawCell(bctx,x,y,g.grid[y][x],CS);
+    // 쌓인 블록 위의 글자
+    for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) if(g.letters[y][x]) drawGlyph(x,y,g.letters[y][x]);
+    // 고스트 + 현재 조각
+    if(g.cur){
+      const ghost={...g.cur,r:g.cur.r}; while(!collide(g,{...ghost,r:ghost.r+1})) ghost.r++;
+      bctx.globalAlpha=.22;
+      for(let y=0;y<g.cur.mat.length;y++) for(let x=0;x<g.cur.mat[y].length;x++)
+        if(g.cur.mat[y][x]) drawCell(bctx,ghost.c+x,ghost.r+y,TI[g.cur.type],CS);
+      bctx.globalAlpha=1;
+      for(let y=0;y<g.cur.mat.length;y++) for(let x=0;x<g.cur.mat[y].length;x++)
+        if(g.cur.mat[y][x]) drawCell(bctx,g.cur.c+x,g.cur.r+y,TI[g.cur.type],CS);
+      // 현재 조각의 글자
+      if(g.cur.lc){ const gx=g.cur.c+g.cur.lc.x, gy=g.cur.r+g.cur.lc.y; if(gy>=0) drawGlyph(gx,gy,g.cur.lc.ch); }
+    }
+    drawNext();
+  }
+  function drawGlyph(x,y,ch){
+    bctx.fillStyle='rgba(0,0,0,.85)';
+    bctx.font = '900 ' + Math.floor(CS*0.72) + 'px sans-serif';
+    bctx.textAlign='center'; bctx.textBaseline='middle';
+    bctx.fillText(ch, x*CS+CS/2, y*CS+CS/2+1);
+    bctx.fillStyle='rgba(255,255,255,.95)';
+    bctx.fillText(ch, x*CS+CS/2, y*CS+CS/2);
+  }
+  function drawNext(){
+    nctx.clearRect(0,0,nextCv.width,nextCv.height);
+    const n = Math.min(5, G.queue.length), cell = 15, rowH = nextCv.height/5;
+    for(let k=0;k<n;k++){
+      const type=G.queue[k], mat=SHAPES[type], t=TI[type];
+      // 채워진 칸의 경계만 잡아서 가운데 정렬 (빈 줄 때문에 칸 벗어나는 것 방지)
+      let minx=9,miny=9,maxx=-1,maxy=-1;
+      for(let y=0;y<mat.length;y++) for(let x=0;x<mat[y].length;x++) if(mat[y][x]){
+        if(x<minx)minx=x; if(x>maxx)maxx=x; if(y<miny)miny=y; if(y>maxy)maxy=y;
+      }
+      const w=(maxx-minx+1)*cell, h=(maxy-miny+1)*cell;
+      const ox=(nextCv.width-w)/2, oy=k*rowH+(rowH-h)/2;
+      for(let y=miny;y<=maxy;y++) for(let x=minx;x<=maxx;x++) if(mat[y][x]){
+        const px=ox+(x-minx)*cell, py=oy+(y-miny)*cell;
+        nctx.fillStyle=COLOR[t]; nctx.fillRect(px,py,cell,cell);
+        nctx.strokeStyle='rgba(0,0,0,.35)'; nctx.strokeRect(px+.5,py+.5,cell-1,cell-1);
+      }
+    }
+  }
+  function clearBoard(){ bctx.fillStyle='#070a14'; bctx.fillRect(0,0,board.width,board.height); nctx.clearRect(0,0,nextCv.width,nextCv.height); }
+
+  function endGame(){
+    if(state!=='playing') return;
+    state='dead'; cancelAnimationFrame(raf); stopSoft(); sfx('over');
+    sendState(); send({type:'topout', score:G.score, lines:G.lines, atk:G.atkSent, combo:G.maxCombo, wbonus:G.wordBonus, cbonus:G.comboBonusTotal});
+    updateStats();
+    const rankTxt = myRank ? ('현재 '+myRank+' / '+myTotal+'위') : '';
+    setOverlay('게임 오버','', '내 점수 '+G.score+'점 · '+rankTxt);
+  }
+  let lastFinal=null;   // 마지막 게임 결과 (다시 보기용)
+  function onGameOver(m){
+    lastFinal = m;
+    cancelAnimationFrame(raf); if(state==='playing') state='dead';
+    const rank = m.players || [];
+    const me = rank.find(p=>p.id===myId);
+    const pos = me ? (rank.indexOf(me)+1) : '-';
+    const wi = winnerInfo(m);
+    let iWon = false;
+    if(m.teamMode){ const ws=(m.winnerTeams&&m.winnerTeams.length)?m.winnerTeams:(m.winnerTeam?[m.winnerTeam]:[]); iWon = me && ws.includes(me.team); }
+    else { const ns=(m.winnerNames&&m.winnerNames.length)?m.winnerNames:[]; iWon = me && ns.includes(me.name); }
+    setOverlay(iWon ? ('🏆 '+wi.text) : wi.text, '', me ? ('내 순위 '+pos+'위 · '+me.score+'점') : '');
+    if(iWon) sfx('win');
+    openFinal();
+    document.getElementById('showResultBtn').classList.remove('hidden');  // 결과 다시 보기 버튼
+  }
+  function openFinal(){
+    const m = lastFinal; if(!m) return;
+    const rank = m.players || [];
+    const me = rank.find(p=>p.id===myId);
+    const pos = me ? (rank.indexOf(me)+1) : '-';
+    const t = document.getElementById('finalTitle');
+    const wi = winnerInfo(m);
+    t.textContent = wi.text; t.style.color = wi.color || '';
+    document.getElementById('finalTeams').innerHTML = buildTeamStandings(m.teams);
+    let meLine = me ? ('내 순위 ' + pos + ' / ' + rank.length + '위 · ' + me.score + '점') : '';
+    if(m.teamMode && me){ const ti=TEAM_BY_ID[me.team]; if(ti) meLine += ' · ' + ti.name + ' 팀'; }
+    document.getElementById('finalMe').textContent = meLine;
+    document.getElementById('finalList').innerHTML = buildRankList(m.players, myId);
+    document.getElementById('finalOverlay').classList.remove('hidden');
+  }
+  function closeFinal(){ document.getElementById('finalOverlay').classList.add('hidden'); }
+  document.getElementById('showResultBtn').onclick = openFinal;
+
+  /* ---- 상대방 화면 그리드 (나 제외, 전부 / 팀 색으로 구분) ---- */
+  const oppCards = new Map(); // id -> {el, canvas, nm}
+  function onWorld(m){
+    // 내 순위
+    const meIdx = m.players.findIndex(p=>p.id===myId);
+    myRank = meIdx>=0 ? meIdx+1 : 0; myTotal = m.players.length;
+    document.getElementById('meRank').textContent = meIdx>=0 ? ((meIdx+1)+' / '+m.players.length+'위') : '';
+
+    // 개인전: 접속 순서 고정 / 팀전: 팀끼리 묶고 팀 안에서 접속 순서 (점수로 자리 안 바뀜)
+    const oppTeamRank = t => { const i = TEAM_PALETTE.findIndex(x=>x.id===t); return i<0 ? 99 : i; };
+    const others = m.players.filter(p=>p.id!==myId).sort((a,b)=>
+      (oppTeamRank(a.team)-oppTeamRank(b.team)) || (a.id - b.id));
+    document.getElementById('oppCount').textContent = '('+others.length+')';
+    const grid = document.getElementById('oppGrid');
+    const ids = new Set(others.map(p=>p.id));
+    for(const [id,c] of oppCards){ if(!ids.has(id)){ c.el.remove(); oppCards.delete(id); } }
+    if(others.length===0){
+      if(!grid.querySelector('.oppEmpty'))
+        grid.innerHTML = '<div class="oppEmpty" style="grid-column:1/-1;color:var(--muted);font-size:11px;text-align:center;padding:10px">다른 플레이어가 들어오면 여기에 표시돼요</div>';
+      return;
+    } else { const e=grid.querySelector('.oppEmpty'); if(e) e.remove(); }
+
+    others.forEach(p=>{
+      let c = oppCards.get(p.id);
+      if(!c){
+        const el = document.createElement('div'); el.className='opp';
+        const cv = document.createElement('canvas'); cv.width=50; cv.height=100;
+        const nm = document.createElement('div'); nm.className='on';
+        const ot = document.createElement('div'); ot.className='ot';   // 팀 표시
+        el.append(cv,nm,ot); grid.appendChild(el);
+        c = {el, canvas:cv, nm, ot}; oppCards.set(p.id, c);
+      }
+      c.el.className = 'opp' + (p.alive?'':' dead');
+      const ti = TEAM_BY_ID[p.team];
+      c.canvas.style.borderColor = ti ? ti.color : 'var(--line)';
+      c.canvas.style.borderWidth = ti ? '3px' : '2px';
+      c.nm.textContent = p.name;
+      c.nm.style.color = ti ? ti.color : 'var(--text)';
+      if(ti){ c.ot.textContent = ti.name; c.ot.style.background = ti.color; c.ot.style.color='#0b0e1a'; c.ot.style.display=''; }
+      else { c.ot.style.display='none'; }
+      renderBoard(c.canvas, p.board);
+      const canPick = amLeader && roomMode==='team' && roomPhase==='lobby';
+      c.el.style.cursor = canPick ? 'pointer' : '';
+      c.el.onclick = canPick ? (()=> openPTeamPicker(p.id, p.name)) : null;
+      grid.appendChild(c.el); // 순위 순서 반영
+    });
+    lastOppCount = others.length;
+    oppHasTeam = others.some(p=>TEAM_BY_ID[p.team]);
+    layoutOpp(others.length);   // 인원수에 맞춰 칸 크기 자동 조절
+  }
+
+  // 상대 화면 칸 크기를 인원수+영역크기에 맞춰 계산 (스크롤 없이 다 들어가게)
+  let lastOppCount = 0, oppHasTeam = false;
+  function layoutOpp(n){
+    const grid = document.getElementById('oppGrid');
+    const W = grid.clientWidth, H = grid.clientHeight;
+    if(n<=0 || W<=0 || H<=0) return;
+    const gap=6, labelH=(oppHasTeam?30:15), ar=2;   // 이름(+팀이름표) 높이 반영
+    function boardWForCols(cols){
+      const rows=Math.ceil(n/cols);
+      const cw=(W - gap*(cols-1))/cols;
+      const ch=(H - gap*(rows-1))/rows;
+      return Math.min(cw, (ch - labelH)/ar);
+    }
+    let best=0, bestCols=1;
+    for(let cols=1; cols<=n; cols++){
+      const bw=boardWForCols(cols);
+      if(bw>best){ best=bw; bestCols=cols; }
+    }
+    // 옆에 빈 공간이 남으면 열을 하나 더 추가해 채우기(인원이 적으면 그대로)
+    let cols = bestCols;
+    const usedW = bestCols*best + gap*(bestCols-1);
+    if(bestCols < n && (W - usedW) >= best*0.6){ cols = bestCols + 1; best = boardWForCols(cols); }
+    best = Math.max(14, Math.floor(best));            // 너무 작아지지 않게 하한
+    best = Math.min(best, Math.floor(boardCS * COLS * 0.7));  // 내 보드의 약 70%까지만
+    grid.style.gridTemplateColumns = 'repeat('+cols+','+best+'px)';
+    grid.style.setProperty('--bw', best+'px');
+  }
+
+  /* ---- 오버레이 ---- */
+  function setOverlay(title,big,sub){
+    const o=document.getElementById('playOverlay'); o.style.display='flex';
+    const tEl=document.getElementById('ovTitle'), bEl=document.getElementById('ovBig'), sEl=document.getElementById('ovSub');
+    tEl.textContent=title; tEl.classList.toggle('hidden',!title);
+    bEl.textContent=big; bEl.classList.toggle('hidden',!big);
+    sEl.textContent=sub;
+  }
+  function hideOverlay(){ document.getElementById('playOverlay').style.display='none'; }
+
+  /* ---- 소프트 드롭(부드럽게 한 칸씩) ---- */
+  const SOFT_MS = 80;            // 누르고 있을 때 한 칸 내려가는 간격(ms). 클수록 천천히 / 작을수록 빠르게
+  let softTimer = null;
+  function startSoft(){
+    if(!G || state!=='playing' || G.over) return;
+    if(softTimer) return;        // 이미 누르는 중이면 중복 방지
+    G.down = true; act('down');  // 즉시 한 칸
+    softTimer = setInterval(()=>{
+      if(state==='playing' && G && G.down && !G.over) act('down');
+      else stopSoft();
+    }, SOFT_MS);
+  }
+  function stopSoft(){ if(G) G.down=false; if(softTimer){ clearInterval(softTimer); softTimer=null; } }
+
+  /* ---- 입력: 키보드 ---- */
+  const KEY={ArrowLeft:'left',ArrowRight:'right',ArrowDown:'down',ArrowUp:'rotate',' ':'drop'};
+  window.addEventListener('keydown', e=>{
+    const k=KEY[e.key]; if(!k) return; e.preventDefault();
+    if(state!=='playing'||!G) return;
+    if(k==='down'){ startSoft(); return; }                    // 소프트 드롭
+    if(pressed.has(k) && (k==='rotate'||k==='drop')) return;   // 회전/하드드롭은 연타 방지
+    pressed.add(k);
+    act(k);
+  });
+  window.addEventListener('keyup', e=>{
+    const k=KEY[e.key]; if(!k) return; pressed.delete(k);
+    if(k==='down') stopSoft();
+  });
+
+  /* ---- 입력: 터치 버튼 ---- */
+  document.querySelectorAll('#pad button').forEach(btn=>{
+    const k=btn.dataset.k;
+    const on=(e)=>{ e.preventDefault(); if(state!=='playing'||!G) return;
+      if(k==='down'){ startSoft(); return; }                  // 소프트 드롭(부드럽게)
+      act(k);
+      if(k==='left'||k==='right'){ btn._rep=setInterval(()=>{ if(state==='playing'&&G) act(k); },110); }
+    };
+    const off=(e)=>{ e.preventDefault(); if(k==='down') stopSoft(); clearInterval(btn._rep); };
+    btn.addEventListener('touchstart',on,{passive:false});
+    btn.addEventListener('touchend',off,{passive:false});
+    btn.addEventListener('mousedown',on); btn.addEventListener('mouseup',off); btn.addEventListener('mouseleave',off);
+  });
+
+  function act(k){
+    const g=G; if(!g||g.over) return;
+    if(k==='left') move(g,-1);
+    else if(k==='right') move(g,1);
+    else if(k==='rotate') tryRotate(g);
+    else if(k==='down') softStep(g);
+    else if(k==='drop') hardDrop(g);
+    if(g.over){ draw(); endGame(); return; }
+    draw();
+  }
+
+  // 보드 캔버스를 화면 크기에 맞춰 조정 (PC: 상대화면이 오른쪽 / 모바일: 아래)
+  let boardCS = 20;   // 내 보드의 셀 크기 (상대 화면 상한으로 사용)
+  function fit(){
+    const stage = board.closest('.stage'); if(!stage) return;
+    const side = document.querySelector('.side');
+    const wide = window.innerWidth >= 720;
+    let sideW = side ? side.offsetWidth : 0;
+    if(!sideW) sideW = wide ? 150 : 130;        // 점수판 폭을 못 읽으면 안전값 사용(보드가 점수판 위로 넘어가는 것 방지)
+    const lb = document.getElementById('atkLogBar');
+    const logH = (lb && lb.style.display !== 'none' && lb.children.length) ? (lb.offsetHeight || 60) + 6 : 0;
+    let availH, availW;
+    if(wide){
+      availH = stage.clientHeight - 4 - logH;
+      availW = (stage.clientWidth - sideW) * 0.62 - 16;   // 점수판 폭 뺀 나머지에서 보드 너비
+    } else {
+      availW = stage.clientWidth - sideW - 22;            // 점수판 폭 + 여유를 넉넉히 빼서 겹침 방지
+      availH = (stage.clientHeight - 6) * 0.62 - logH;
+    }
+    if(availH <= 0 || availW <= 0) return;
+    const cs = Math.max(8, Math.floor(Math.min(availH/ROWS, availW/COLS)));
+    boardCS = cs;
+    board.style.width  = (cs*COLS) + 'px';
+    board.style.height = (cs*ROWS) + 'px';
+    const bc = board.closest('.boardCol');
+    if(bc) bc.style.width = (cs*COLS) + 'px';   // 보드 칸 폭 = 보드 폭 (공격 로그가 옆 패널을 안 가림)
+    layoutOpp(lastOppCount);   // 보드 크기 바뀌면 상대 화면 상한도 갱신
+  }
+  window.addEventListener('resize', ()=>{ fit(); });
+  setTimeout(fit, 50);
+  requestAnimationFrame(()=>requestAnimationFrame(fit));   // 화면이 다 그려진 뒤 한 번 더(점수판 폭 0 방지)
+
+  connect(()=>{ if(state!=='name'){ send({type:'join', role:'player', name:myName, team:myTeam}); } });
+  setTimeout(()=>nameInput.focus(), 100);
+}
+
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+</script>
+</body>
+</html>
