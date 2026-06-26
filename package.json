@@ -1,0 +1,12 @@
+{
+  "name": "tetris-battle",
+  "version": "1.0.0",
+  "description": "교실에서 반 전체와 실시간으로 대결하는 테트리스 (외부 라이브러리 없음)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}
