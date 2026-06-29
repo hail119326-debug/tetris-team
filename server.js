@@ -170,11 +170,14 @@ const waitingPlayers = () => players().filter(p => !p.meta.room);
 const isHost = (ws) => ws.meta.role === 'host';
 const roomById = (id) => rooms.get(id) || null;
 
-// 방장 = 그 방에서 가장 먼저 들어온(=id가 가장 작은) 학생. 나가면 다음 학생이 자동 승계.
+// 방장 결정: auto=먼저 들어온 학생, fixed=교사 지정 학생, none=방장 없음(교사만 운영)
 function roomLeaderId(rid) {
+  const room = rooms.get(rid); if (!room) return 0;
   const ps = playersIn(rid);
   if (!ps.length) return 0;
-  return ps.reduce((min, p) => (p.meta.id < min ? p.meta.id : min), Infinity);
+  if (room.leaderMode === 'none') return 0;
+  if (room.leaderMode === 'fixed' && ps.some(p => p.meta.id === room.leaderId)) return room.leaderId;
+  return ps.reduce((min, p) => (p.meta.id < min ? p.meta.id : min), Infinity); // auto (또는 지정자가 나간 경우)
 }
 function isLeader(ws) {
   return ws.meta.role === 'player' && !!ws.meta.room && roomLeaderId(ws.meta.room) === ws.meta.id;
@@ -194,6 +197,7 @@ function makeRoom(name, mode) {
     name: (name || ('방 ' + id.slice(1))).toString().slice(0, 16),
     mode: (mode === 'team' ? 'team' : 'solo'),
     phase: 'lobby', activeTeams: [], keywords: [], ending: false,
+    leaderMode: 'auto', leaderId: 0,   // auto=먼저 들어온 학생 / fixed=지정 / none=교사만
   };
   rooms.set(id, room);
   return room;
@@ -242,6 +246,15 @@ function handleMessage(ws, raw) {
         broadcastRooms();
       }
       break;
+    case 'setleader':        // 교사: 특정 학생을 방장으로 지정
+      if (isHost(ws)) { const r = roomById(m.room); if (r) { r.leaderMode = 'fixed'; r.leaderId = (m.id | 0); broadcastRooms(); } }
+      break;
+    case 'clearleader':      // 교사: 방장 없앰 (이 방은 교사만 운영)
+      if (isHost(ws)) { const r = roomById(m.room); if (r) { r.leaderMode = 'none'; r.leaderId = 0; broadcastRooms(); } }
+      break;
+    case 'autoleader':       // 교사: 방장 자동(먼저 들어온 학생)으로 되돌림
+      if (isHost(ws)) { const r = roomById(m.room); if (r) { r.leaderMode = 'auto'; r.leaderId = 0; broadcastRooms(); } }
+      break;
     case 'setmode':
       {
         const r = targetRoom(ws, m);
@@ -287,10 +300,10 @@ function handleMessage(ws, raw) {
         const r = targetRoom(ws, m);
         if (r && r.phase === 'playing' && !r.ending) {
           r.ending = true;
-          const cd = JSON.stringify({ type: 'endcountdown', sec: 5 });
+          const cd = JSON.stringify({ type: 'endcountdown', sec: 10 });
           for (const p of playersIn(r.id)) p.send(cd);
           for (const h of hosts()) if (h.meta.viewRoom === r.id) h.send(cd);
-          setTimeout(() => { r.ending = false; finishGame(r); }, 5000);
+          setTimeout(() => { r.ending = false; finishGame(r); }, 10000);
         }
       }
       break;
@@ -337,6 +350,8 @@ function startGame(room) {
     p.meta.atk = 0; p.meta.maxCombo = 0; p.meta.wbonus = 0; p.meta.cbonus = 0;
     p.send(JSON.stringify({ type: 'start' }));
   }
+  const st = JSON.stringify({ type: 'start', room: room.id });
+  for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(st);   // 보고 있는 교사 화면에도 카운트
   broadcastRooms();
 }
 function resetGame(room) {
