@@ -160,6 +160,8 @@
   .joinUrls{display:flex;gap:8px;flex-wrap:wrap}
   .joinUrls .u{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:18px;font-weight:800;color:var(--accent);cursor:pointer;font-family:inherit}
   .joinUrls .u:hover{border-color:var(--accent)}
+  .hostHead .joinUrls .u{font-size:15px;padding:6px 12px}
+  .hostHead .joinUrls .pill{font-size:12px}
   #qrOverlay{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(7,10,20,.94);backdrop-filter:blur(4px)}
   .qrCard{display:flex;flex-direction:column;align-items:center;gap:14px;padding:24px;text-align:center}
   .qrBox{background:#fff;padding:18px;border-radius:18px;display:flex;align-items:center;justify-content:center;min-width:220px;min-height:220px}
@@ -216,6 +218,8 @@
   .teamCtl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .hbtn.settings{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
   .hbtn.settings.on{background:linear-gradient(90deg,var(--accent2),var(--accent));color:#06121f;border-color:transparent}
+  .hbtn.hmode{background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:12px 18px}
+  .hbtn.hmode.on{background:var(--accent);color:#06121f;border-color:var(--accent)}
   /* ⚙️ 설정 패널 (접기/펼치기) */
   .hSettings{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);
     border-radius:14px;padding:12px;margin-top:4px}
@@ -414,7 +418,10 @@
     <h1>🎮 테트리스 배틀 (방 관리)</h1>
     <span class="pill">접속 <b id="hCount">0</b>명</span>
     <span class="pill" id="hConn" style="font-weight:800">🔴 연결 중…</span>
+    <div class="joinUrls" id="joinUrls"><span class="pill">학생 접속 주소…</span></div>
     <div class="spacer"></div>
+    <button class="hbtn hmode" id="hSolo">개인전</button>
+    <button class="hbtn hmode" id="hTeam">팀전</button>
     <button class="hbtn start hidden" id="hStart">▶ 시작</button>
     <button class="hbtn finish hidden" id="hFinish">⏱ 종료</button>
     <button class="hbtn reset hidden" id="hReset">🔄 리셋</button>
@@ -429,9 +436,8 @@
   </div>
   <!-- ⚙️ 설정 패널 -->
   <div id="hSettings" class="hSettings hidden">
-    <div class="joinUrls" id="joinUrls"><span class="pill">학생 접속 주소 불러오는 중…</span></div>
     <div class="teamCtl">
-      <span class="pill">📚 학습 키워드 <span style="color:var(--muted);font-weight:700">(지금 보는 방에 적용 · 한 줄에 하나)</span></span>
+      <span class="pill">📚 학습 키워드 <span style="color:var(--muted);font-weight:700">(모든 방에 적용 · 한 줄에 하나)</span></span>
       <textarea id="hKeyword" rows="3" placeholder="광합성&#10;엽록체&#10;기공"></textarea>
       <div style="display:flex;flex-direction:column;gap:6px">
         <button class="hbtn assign" id="hSetKw">키워드 등록</button>
@@ -716,7 +722,9 @@ function initHost(){
   document.getElementById('hStart').onclick = ()=>{ if(viewRoom) send({type:'start', room:viewRoom}); document.getElementById('hostOverlay').classList.add('hidden'); };
   document.getElementById('hFinish').onclick = ()=>{ if(viewRoom && confirm('이 방을 종료할까요? 10초 후 결과가 나옵니다.')) send({type:'finish', room:viewRoom}); };
   document.getElementById('hReset').onclick = ()=>{ if(viewRoom){ send({type:'reset', room:viewRoom}); document.getElementById('hostOverlay').classList.add('hidden'); hostHideCount(); document.getElementById('atkLog').innerHTML=''; } };
-  // 보고 있는 방의 상태에 따라 시작/종료/리셋 버튼 표시
+  document.getElementById('hSolo').onclick = ()=>{ if(viewRoom) send({type:'setmode', room:viewRoom, mode:'solo'}); };
+  document.getElementById('hTeam').onclick = ()=>{ if(viewRoom) send({type:'setmode', room:viewRoom, mode:'team'}); };
+  // 보고 있는 방의 상태에 따라 버튼 표시 + 개인전/팀전 현재값 표시
   function updateHostButtons(){
     const vr = (lastRooms.rooms||[]).find(r=>r.id===viewRoom);
     const show = !onWaitTab && !!vr;
@@ -724,6 +732,14 @@ function initHost(){
     document.getElementById('hStart').classList.toggle('hidden', !(show && ph!=='playing'));
     document.getElementById('hFinish').classList.toggle('hidden', !(show && ph==='playing'));
     document.getElementById('hReset').classList.toggle('hidden', !(show && ph==='ended'));
+    // 개인전/팀전 토글: 게임 시작 전(대기)에만 보임
+    const modeShow = show && ph!=='playing';
+    document.getElementById('hSolo').classList.toggle('hidden', !modeShow);
+    document.getElementById('hTeam').classList.toggle('hidden', !modeShow);
+    if(vr){
+      document.getElementById('hSolo').classList.toggle('on', vr.mode!=='team');
+      document.getElementById('hTeam').classList.toggle('on', vr.mode==='team');
+    }
   }
 
   // ⚙️ 설정 패널 열기/닫기
@@ -733,15 +749,15 @@ function initHost(){
     document.getElementById('hSettingsBtn').classList.toggle('on', open);
   };
 
-  // 학습 키워드 등록/지우기 (지금 보는 방에 적용)
+  // 학습 키워드 등록/지우기 (모든 방에 적용)
   const kwInput = document.getElementById('hKeyword');
   function setKw(){
-    if(!viewRoom){ alert('먼저 방 탭을 선택하세요.'); return; }
     const words = kwInput.value.split('\n').map(s=>s.trim()).filter(Boolean);
-    send({type:'setkeyword', words, room:viewRoom});
+    send({type:'setkeyword', words});
+    hostToast(words.length ? ('키워드 '+words.length+'개 등록 (모든 방)') : '키워드 비움');
   }
   document.getElementById('hSetKw').onclick = setKw;
-  document.getElementById('hClearKw').onclick = ()=>{ if(!viewRoom){ alert('먼저 방 탭을 선택하세요.'); return; } kwInput.value=''; send({type:'setkeyword', words:[], room:viewRoom}); };
+  document.getElementById('hClearKw').onclick = ()=>{ kwInput.value=''; send({type:'setkeyword', words:[]}); hostToast('키워드 지움 (모든 방)'); };
   // 카드에 팀 색 입히기(렌더와 즉시반영에서 공용)
   function styleCard(el, ptEl, team){
     const ti = TEAM_BY_ID[team];
