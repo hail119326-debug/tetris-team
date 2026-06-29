@@ -162,6 +162,7 @@ let nextId = 1;
 let nextRoom = 1;
 const MAX_ROOMS = 15;
 const rooms = new Map(); // roomId -> { id, name, mode, phase, activeTeams, keywords, ending }
+let globalKeywords = [];  // 교사가 등록하면 모든 방에 적용 (새 방도 자동 상속)
 
 const players = () => [...clients].filter(c => c.meta.role === 'player');
 const hosts = () => [...clients].filter(c => c.meta.role === 'host');
@@ -196,7 +197,7 @@ function makeRoom(name, mode) {
     id,
     name: (name || ('방 ' + id.slice(1))).toString().slice(0, 16),
     mode: (mode === 'team' ? 'team' : 'solo'),
-    phase: 'lobby', activeTeams: [], keywords: [], ending: false,
+    phase: 'lobby', activeTeams: [], keywords: globalKeywords.slice(), ending: false,
     leaderMode: 'auto', leaderId: 0,   // auto=먼저 들어온 학생 / fixed=지정 / none=교사만
   };
   rooms.set(id, room);
@@ -331,12 +332,19 @@ function handleMessage(ws, raw) {
       break;
     case 'setkeyword':
       {
-        const r = targetRoom(ws, m);
-        if (r) {
-          let arr = Array.isArray(m.words) ? m.words : String(m.word || '').split(/[\n,]/);
-          r.keywords = arr.map(w => String(w).replace(/\s+/g, '').slice(0, 12)).filter(w => w.length > 0).slice(0, 20);
-          const kw = JSON.stringify({ type: 'keywords', words: r.keywords });
-          for (const p of playersIn(r.id)) p.send(kw);
+        const clean = arr => arr.map(w => String(w).replace(/\s+/g, '').slice(0, 12)).filter(w => w.length > 0).slice(0, 20);
+        const words = clean(Array.isArray(m.words) ? m.words : String(m.word || '').split(/[\n,]/));
+        if (isHost(ws) && !m.room) {
+          // 교사: 모든 방에 적용 (+ 앞으로 만들 방도)
+          globalKeywords = words;
+          const kw = JSON.stringify({ type: 'keywords', words });
+          for (const r of rooms.values()) { r.keywords = words.slice(); }
+          for (const p of players()) if (p.meta.room) p.send(kw);
+          for (const h of hosts()) h.send(kw);   // 교사 화면 표시 갱신
+        } else {
+          // 방장(또는 특정 방 지정): 그 방만
+          const r = targetRoom(ws, m);
+          if (r) { r.keywords = words; const kw = JSON.stringify({ type: 'keywords', words }); for (const p of playersIn(r.id)) p.send(kw); ws.send(kw); }
         }
       }
       break;
