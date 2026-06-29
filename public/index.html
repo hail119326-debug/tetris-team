@@ -415,6 +415,9 @@
     <span class="pill">접속 <b id="hCount">0</b>명</span>
     <span class="pill" id="hConn" style="font-weight:800">🔴 연결 중…</span>
     <div class="spacer"></div>
+    <button class="hbtn start hidden" id="hStart">▶ 시작</button>
+    <button class="hbtn finish hidden" id="hFinish">⏱ 종료</button>
+    <button class="hbtn reset hidden" id="hReset">🔄 리셋</button>
     <button class="hbtn assign hidden" id="hShowResult">📊 결과 보기</button>
     <button class="hbtn settings" id="hSettingsBtn">⚙️ 설정</button>
   </div>
@@ -710,6 +713,18 @@ function initHost(){
   loadQrLib(()=>{});   // 미리 불러두기
 
   document.getElementById('hShowResult').onclick = ()=> document.getElementById('hostOverlay').classList.remove('hidden');
+  document.getElementById('hStart').onclick = ()=>{ if(viewRoom) send({type:'start', room:viewRoom}); document.getElementById('hostOverlay').classList.add('hidden'); };
+  document.getElementById('hFinish').onclick = ()=>{ if(viewRoom && confirm('이 방을 종료할까요? 10초 후 결과가 나옵니다.')) send({type:'finish', room:viewRoom}); };
+  document.getElementById('hReset').onclick = ()=>{ if(viewRoom){ send({type:'reset', room:viewRoom}); document.getElementById('hostOverlay').classList.add('hidden'); hostHideCount(); document.getElementById('atkLog').innerHTML=''; } };
+  // 보고 있는 방의 상태에 따라 시작/종료/리셋 버튼 표시
+  function updateHostButtons(){
+    const vr = (lastRooms.rooms||[]).find(r=>r.id===viewRoom);
+    const show = !onWaitTab && !!vr;
+    const ph = vr ? vr.phase : '';
+    document.getElementById('hStart').classList.toggle('hidden', !(show && ph!=='playing'));
+    document.getElementById('hFinish').classList.toggle('hidden', !(show && ph==='playing'));
+    document.getElementById('hReset').classList.toggle('hidden', !(show && ph==='ended'));
+  }
 
   // ⚙️ 설정 패널 열기/닫기
   document.getElementById('hSettingsBtn').onclick = ()=>{
@@ -775,6 +790,35 @@ function initHost(){
     tp.style.left=Math.max(8,px)+'px'; tp.style.top=Math.max(8,py)+'px';
   }
   document.getElementById('rpClose').onclick=closeRoomPicker;
+
+  // 학생 카드(방 안) 클릭 → 통합 메뉴: 방장 지정/해제 · 팀 지정 · 방 이동
+  function openHostMenu(e, id){
+    const tp=document.getElementById('roomPicker'), row=document.getElementById('rpRow');
+    if(tp.parentElement !== document.body) document.body.appendChild(tp);
+    document.getElementById('rpTitle').textContent = (nameById[id]||'학생');
+    row.innerHTML='';
+    const sec=(label)=>{ const d=document.createElement('div'); d.style.cssText='width:100%;font-size:11px;color:var(--muted);font-weight:800;margin:8px 0 2px'; d.textContent=label; row.appendChild(d); };
+    const btn=(text,bg,fn)=>{ const b=document.createElement('button'); b.className='tpBtn'; b.textContent=text; if(bg){ b.style.background=bg; b.style.color='#0b0e1a'; } b.onclick=()=>{ fn(); closeRoomPicker(); }; row.appendChild(b); };
+    sec('방장');
+    btn('👑 방장으로 지정','', ()=>{ send({type:'setleader', room:viewRoom, id}); hostToast((nameById[id]||'학생')+' 방장 지정'); });
+    btn('🚫 방장 해제(교사만 운영)','', ()=>{ send({type:'clearleader', room:viewRoom}); hostToast('방장 해제 — 이 방은 교사만 운영'); });
+    btn('🔄 자동 방장(먼저 들어온 학생)','', ()=>{ send({type:'autoleader', room:viewRoom}); hostToast('자동 방장으로'); });
+    const vr=(lastRooms.rooms||[]).find(r=>r.id===viewRoom);
+    if(vr && vr.mode==='team'){
+      sec('팀 지정');
+      TEAM_PALETTE.forEach(t=> btn(t.name, t.color, ()=> send({type:'assign', id, team:t.id})));
+      btn('미배정','', ()=> send({type:'assign', id, team:''}));
+    }
+    sec('방 이동');
+    (lastRooms.rooms||[]).forEach(r=> btn(r.name + (r.id===viewRoom?' (현재)':''), '', ()=>{ send({type:'assignroom', id, room:r.id}); hostToast((nameById[id]||'학생')+' → '+r.name); }));
+    btn('🕒 대기실로','', ()=>{ send({type:'assignroom', id, room:''}); hostToast((nameById[id]||'학생')+' → 대기실'); });
+    let bd=document.getElementById('rpBackdrop');
+    if(!bd){ bd=document.createElement('div'); bd.id='rpBackdrop'; bd.className='tpBackdrop'; bd.onclick=closeRoomPicker; document.body.appendChild(bd); }
+    bd.style.display='block'; tp.classList.remove('hidden');
+    const px=Math.min((e&&e.clientX)||120, window.innerWidth-240);
+    const py=Math.min((e&&e.clientY)||120, window.innerHeight-380);
+    tp.style.left=Math.max(8,px)+'px'; tp.style.top=Math.max(8,Math.max(8,py))+'px';
+  }
   const teamRank = (t)=>{ const i = TEAM_PALETTE.findIndex(x=>x.id===t); return i<0 ? 99 : i; }; // 그리드 묶음 순서
 
   window.onServer = (m)=>{
@@ -794,7 +838,7 @@ function initHost(){
       return;
     }
     if(m.type==='attackfx'){ if(!onWaitTab) flashAttack(m.fromId, m.toId, m.amount); return; }
-    if(m.type==='start'){ if(!onWaitTab) hostRunCount(3, false); return; }
+    if(m.type==='start'){ if(!onWaitTab) hostRunCount(5, false); return; }
     if(m.type==='endcountdown'){ if(!onWaitTab) hostRunCount(m.sec||5, true); return; }
   };
 
@@ -814,6 +858,7 @@ function initHost(){
     const wb=document.createElement('button'); wb.className='rtab wait'+(onWaitTab?' on':'');
     wb.innerHTML='<span>🕒 대기실</span><small>'+wc+'명</small>';
     wb.onclick=selectWaiting; bar.appendChild(wb);
+    updateHostButtons();
   }
   function selectRoom(rid){
     onWaitTab=false; viewRoom=rid; send({type:'viewroom', room:rid});
@@ -927,7 +972,7 @@ function initHost(){
         const pt = document.createElement('div'); pt.className='pt';
         const ps = document.createElement('div'); ps.className='ps';
         el.append(cv,pn,pt,ps); grid.appendChild(el);
-        el.onclick = (e)=> openRoomPicker(e, +el.dataset.pid); // 클릭 → 방 이동
+        el.onclick = (e)=> openHostMenu(e, +el.dataset.pid); // 클릭 → 방장/팀/방이동 메뉴
         c = {el, canvas:cv, pn, pt, ps}; cards.set(p.id, c);
       }
       c.el.className = 'pcard' + (p.alive?'':' dead');
@@ -1243,7 +1288,7 @@ function initPlayer(){
   function startCountdown(){
     if(state==='playing') return;
     hideResultUI();
-    let n=3;
+    let n=5;
     setOverlay('', String(n), ''); sfx('count');
     const iv = setInterval(()=>{
       n--;
