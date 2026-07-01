@@ -199,6 +199,7 @@ function makeRoom(name, mode) {
     mode: (mode === 'team' ? 'team' : 'solo'),
     phase: 'lobby', activeTeams: [], keywords: globalKeywords.slice(), ending: false,
     leaderMode: 'auto', leaderId: 0,   // auto=먼저 들어온 학생 / fixed=지정 / none=교사만
+    gameType: 'survival', timeLimit: 0, endsAt: 0,  // time 모드: 제한시간(초) + 종료시각
   };
   rooms.set(id, room);
   return room;
@@ -291,7 +292,19 @@ function handleMessage(ws, raw) {
       }
       break;
     case 'start':
-      { const r = targetRoom(ws, m); if (r) startGame(r); }
+      { const r = targetRoom(ws, m); if (r) startGame(r, m.gameType, m.minutes); }
+      break;
+    case 'revive':           // 시간 모드에서 부활 → 다시 살아있음
+      if (ws.meta.role === 'player') { ws.meta.alive = true; }
+      break;
+    case 'addtime':          // 시간 모드: 진행 중 시간 가감 (교사/방장)
+      {
+        const r = targetRoom(ws, m);
+        if (r && r.gameType === 'time' && r.phase === 'playing') {
+          const delta = (m.delta | 0) * 1000;            // 초 → ms
+          r.endsAt = Math.max(Date.now() + 5000, r.endsAt + delta);  // 최소 5초는 남김
+        }
+      }
       break;
     case 'reset':
       { const r = targetRoom(ws, m); if (r) resetGame(r); }
@@ -351,19 +364,25 @@ function handleMessage(ws, raw) {
   }
 }
 
-function startGame(room) {
+function startGame(room, gameType, minutes) {
   room.phase = 'playing'; room.ending = false;
+  room.gameType = (gameType === 'time') ? 'time' : 'survival';
+  if (room.gameType === 'time') {
+    const mins = Math.max(1, Math.min(60, (minutes | 0) || 5));
+    room.timeLimit = mins * 60;
+    room.endsAt = Date.now() + (5 + room.timeLimit) * 1000;   // 시작 5초 카운트 포함
+  } else { room.timeLimit = 0; room.endsAt = 0; }
+  const startMsg = { type: 'start', room: room.id, gameType: room.gameType, endsAt: room.endsAt };
   for (const p of playersIn(room.id)) {
     p.meta.alive = true; p.meta.score = 0; p.meta.lines = 0; p.meta.board = null;
     p.meta.atk = 0; p.meta.maxCombo = 0; p.meta.wbonus = 0; p.meta.cbonus = 0;
-    p.send(JSON.stringify({ type: 'start' }));
+    p.send(JSON.stringify(startMsg));
   }
-  const st = JSON.stringify({ type: 'start', room: room.id });
-  for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(st);   // 보고 있는 교사 화면에도 카운트
+  for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(JSON.stringify(startMsg)); // 교사 화면 카운트
   broadcastRooms();
 }
 function resetGame(room) {
-  room.phase = 'lobby'; room.ending = false;
+  room.phase = 'lobby'; room.ending = false; room.endsAt = 0;
   for (const p of playersIn(room.id)) { p.meta.alive = false; p.meta.score = 0; p.meta.lines = 0; p.meta.board = null; p.send(JSON.stringify({ type: 'reset' })); }
   broadcastRooms();
 }
@@ -423,12 +442,12 @@ function roomWorld(room) {
     atk: p.meta.atk || 0, combo: p.meta.maxCombo || 0, wbonus: p.meta.wbonus || 0, cbonus: p.meta.cbonus || 0,
   })).sort((a, b) => (b.alive - a.alive) || (b.score - a.score));
   const teams = teamSummary(ps);
-  return { type: 'world', room: room.id, name: room.name, mode: room.mode, phase: room.phase, leaderId: roomLeaderId(room.id), count: ps.length, teams, players: rank };
+  return { type: 'world', room: room.id, name: room.name, mode: room.mode, phase: room.phase, gameType: room.gameType, endsAt: room.endsAt, leaderId: roomLeaderId(room.id), count: ps.length, teams, players: rank };
 }
 function roomsListPayload() {
   const list = [...rooms.values()].map(r => {
     const ps = playersIn(r.id);
-    return { id: r.id, name: r.name, mode: r.mode, phase: r.phase, count: ps.length, alive: ps.filter(p => p.meta.alive).length };
+    return { id: r.id, name: r.name, mode: r.mode, phase: r.phase, gameType: r.gameType, count: ps.length, alive: ps.filter(p => p.meta.alive).length };
   });
   const waiting = waitingPlayers().map(p => ({ id: p.meta.id, name: p.meta.name }));
   return { type: 'rooms', rooms: list, waiting };
@@ -458,6 +477,11 @@ setInterval(() => {
     if (r.phase !== 'playing') continue;
     const ps = playersIn(r.id);
     if (ps.length === 0) continue;
+    if (r.gameType === 'time') {
+      // 시간 모드: 제한시간 끝나면 종료 (죽어도 부활하므로 인원으로 끝내지 않음)
+      if (r.endsAt && Date.now() >= r.endsAt) finishGame(r);
+      continue;
+    }
     const alive = ps.filter(p => p.meta.alive);
     let ended = false;
     if (r.mode === 'team') {
