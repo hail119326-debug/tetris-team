@@ -77,6 +77,30 @@
   .leaderBar .lbMinBox{display:flex;align-items:center;gap:4px;font-weight:800;font-size:13px}
   .leaderBar .lbMinBox button{padding:4px 10px;font-size:14px}
   .leaderBar .lbMinBox b{min-width:16px;text-align:center;font-size:15px;color:var(--accent)}
+  /* 시작 설정 창 (방장/교사 공용) */
+  .startDlg{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9999;
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);width:min(92vw,380px)}
+  .startDlg .sdTitle{font-size:20px;font-weight:900;margin-bottom:14px;text-align:center;color:var(--accent)}
+  .startDlg .sdRow{display:flex;gap:10px;margin-bottom:12px}
+  .startDlg .sdOpt{flex:1;display:flex;flex-direction:column;gap:3px;align-items:center;
+    background:var(--panel2);color:var(--text);border:2px solid var(--line);border-radius:12px;padding:14px 8px;
+    font-size:16px;font-weight:800;cursor:pointer}
+  .startDlg .sdOpt small{font-size:11px;color:var(--muted);font-weight:700}
+  .startDlg .sdOpt.on{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,var(--panel2))}
+  .startDlg .sdOpt.on small{color:var(--text)}
+  .startDlg .sdMinBox{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;font-size:15px;margin-bottom:12px}
+  .startDlg .sdMinBox button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 14px;font-size:16px;font-weight:800;cursor:pointer}
+  .startDlg .sdMinBox b{min-width:22px;text-align:center;font-size:19px;color:var(--accent)}
+  .startDlg .sdTeamBox{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:12px;text-align:center}
+  .startDlg .sdHint{font-size:12px;color:var(--muted);font-weight:800;margin-bottom:6px}
+  .startDlg .sdAutoRow{display:flex;gap:6px;justify-content:center;margin-bottom:6px}
+  .startDlg .sdAutoRow button{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 14px;font-weight:800;cursor:pointer}
+  .startDlg .sdHint2{font-size:11px;color:var(--muted)}
+  .startDlg .sdBtns{display:flex;gap:10px}
+  .startDlg .sdStart{flex:1;background:#22c55e;color:#06121f;border:none;border-radius:12px;padding:14px;font-size:17px;font-weight:900;cursor:pointer}
+  .startDlg .sdClose{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:14px 18px;font-weight:800;cursor:pointer}
+  .sdBackdrop{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.4)}
   .stage{flex:1;display:flex;gap:10px;min-height:0}
   .mainCol{display:flex;gap:10px;min-height:0;flex:0 0 auto;justify-content:center;order:2}   /* 내 보드: 오른쪽 */
   .boardWrap{position:relative;display:flex;align-items:center}
@@ -350,27 +374,30 @@
   <div id="leaderBar" class="leaderBar hidden">
     <span class="lbTitle">👑 방장</span>
     <div class="lbModes">
-      <button id="lbSolo" class="lbmode">개인전</button>
-      <button id="lbTeam" class="lbmode">팀전</button>
+      <button id="lbGoSolo" class="lbmode">개인전 ▸</button>
+      <button id="lbGoTeam" class="lbmode">팀전 ▸</button>
     </div>
     <div id="lbTeamTools" class="lbTeamTools hidden">
-      <span class="lbHint">자동:</span>
-      <button class="lbauto" data-n="2">2팀</button>
-      <button class="lbauto" data-n="3">3팀</button>
-      <button class="lbauto" data-n="4">4팀</button>
       <span class="lbHint">내 팀:</span><span id="lbMyTeam" class="lbMyTeam"></span>
       <span class="lbHint2">학생 카드를 눌러 팀 지정</span>
     </div>
-    <div class="lbModes" style="margin-left:6px">
-      <button id="lbSurv" class="lbmode on">서바이벌</button>
-      <button id="lbTime" class="lbmode">시간</button>
-    </div>
-    <span id="lbMinBox" class="lbMinBox hidden">
-      <button id="lbMinDn">−</button><b id="lbMinVal">5</b>분<button id="lbMinUp">+</button>
-    </span>
-    <button id="lbStart" class="lbstart">▶ 시작</button>
     <button id="lbReset" class="lbreset hidden">🔄 다시</button>
     <span id="lbTimeAdj" class="lbMinBox hidden"><button id="lbAdjDn">−1분</button><button id="lbAdjUp">＋1분</button></span>
+  </div>
+  <!-- 시작 설정 창 (방장) -->
+  <div id="startDlg" class="startDlg hidden">
+    <div class="sdTitle" id="sdTitle">게임 시작</div>
+    <div class="sdRow">
+      <button id="sdSurv" class="sdOpt on">서바이벌<small>죽으면 탈락</small></button>
+      <button id="sdTime" class="sdOpt">시간 모드<small>시간 내 점수 · 부활</small></button>
+    </div>
+    <div id="sdMinBox" class="sdMinBox hidden">제한 시간 <button id="sdMinDn">−</button><b id="sdMinVal">5</b>분 <button id="sdMinUp">＋</button></div>
+    <div id="sdTeamBox" class="sdTeamBox hidden">
+      <div class="sdHint">빠른 팀 나누기</div>
+      <div class="sdAutoRow"><button class="sdAuto" data-n="2">2팀</button><button class="sdAuto" data-n="3">3팀</button><button class="sdAuto" data-n="4">4팀</button></div>
+      <div class="sdHint2">직접 나누려면 닫고 학생 카드를 누르세요</div>
+    </div>
+    <div class="sdBtns"><button id="sdStart" class="sdStart">▶ 시작</button><button id="sdClose" class="sdClose">닫기</button></div>
   </div>
   <div class="stage">
     <div class="mainCol">
@@ -439,12 +466,8 @@
     <span class="timeLeft" id="hTimeLeft"></span>
     <div class="joinUrls" id="joinUrls"><span class="pill">학생 접속 주소…</span></div>
     <div class="spacer"></div>
-    <button class="hbtn hmode" id="hSolo">개인전</button>
-    <button class="hbtn hmode" id="hTeam">팀전</button>
-    <button class="hbtn hmode" id="hSurv">서바이벌</button>
-    <button class="hbtn hmode" id="hTime">시간</button>
-    <span id="hMinBox" class="hMinBox hidden"><button id="hMinDn">−</button><b id="hMinVal">5</b>분<button id="hMinUp">＋</button></span>
-    <button class="hbtn start hidden" id="hStart">▶ 시작</button>
+    <button class="hbtn hmode hidden" id="hGoSolo">개인전 ▸</button>
+    <button class="hbtn hmode hidden" id="hGoTeam">팀전 ▸</button>
     <button class="hbtn finish hidden" id="hFinish">⏱ 종료</button>
     <button class="hbtn reset hidden" id="hReset">🔄 리셋</button>
     <span id="hTimeAdj" class="hMinBox hidden"><button id="hAdjDn">−1분</button><button id="hAdjUp">＋1분</button></span>
@@ -456,6 +479,21 @@
     <div class="tpTitle" id="rpTitle">방 선택</div>
     <div class="tpRow" id="rpRow"></div>
     <button class="tpClose" id="rpClose">닫기</button>
+  </div>
+  <!-- 시작 설정 창 (교사) -->
+  <div id="hStartDlg" class="startDlg hidden">
+    <div class="sdTitle" id="hsdTitle">게임 시작</div>
+    <div class="sdRow">
+      <button id="hsdSurv" class="sdOpt on">서바이벌<small>죽으면 탈락</small></button>
+      <button id="hsdTime" class="sdOpt">시간 모드<small>시간 내 점수 · 부활</small></button>
+    </div>
+    <div id="hsdMinBox" class="sdMinBox hidden">제한 시간 <button id="hsdMinDn">−</button><b id="hsdMinVal">5</b>분 <button id="hsdMinUp">＋</button></div>
+    <div id="hsdTeamBox" class="sdTeamBox hidden">
+      <div class="sdHint">빠른 팀 나누기</div>
+      <div class="sdAutoRow"><button class="hsdAuto" data-n="2">2팀</button><button class="hsdAuto" data-n="3">3팀</button><button class="hsdAuto" data-n="4">4팀</button></div>
+      <div class="sdHint2">직접 나누려면 닫고 학생 카드를 누르세요</div>
+    </div>
+    <div class="sdBtns"><button id="hsdStart" class="sdStart">▶ 시작</button><button id="hsdClose" class="sdClose">닫기</button></div>
   </div>
   <!-- ⚙️ 설정 패널 -->
   <div id="hSettings" class="hSettings hidden">
@@ -752,19 +790,13 @@ function initHost(){
   loadQrLib(()=>{});   // 미리 불러두기
 
   document.getElementById('hShowResult').onclick = ()=> document.getElementById('hostOverlay').classList.remove('hidden');
-  document.getElementById('hStart').onclick = ()=>{ if(viewRoom) send({type:'start', room:viewRoom, gameType:hType, minutes:hMins}); document.getElementById('hostOverlay').classList.add('hidden'); };
   document.getElementById('hFinish').onclick = ()=>{ if(viewRoom && confirm('이 방을 종료할까요? 10초 후 결과가 나옵니다.')) send({type:'finish', room:viewRoom}); };
   document.getElementById('hReset').onclick = ()=>{ if(viewRoom){ send({type:'reset', room:viewRoom}); document.getElementById('hostOverlay').classList.add('hidden'); hostHideCount(); document.getElementById('atkLog').innerHTML=''; } };
-  document.getElementById('hSolo').onclick = ()=>{ if(viewRoom) send({type:'setmode', room:viewRoom, mode:'solo'}); };
-  document.getElementById('hTeam').onclick = ()=>{ if(viewRoom) send({type:'setmode', room:viewRoom, mode:'team'}); };
-  let hType='survival', hMins=5;
-  document.getElementById('hSurv').onclick = ()=>{ hType='survival'; updateHostButtons(); };
-  document.getElementById('hTime').onclick = ()=>{ hType='time'; updateHostButtons(); };
-  document.getElementById('hMinDn').onclick = ()=>{ hMins=Math.max(1,hMins-1); updateHostButtons(); };
-  document.getElementById('hMinUp').onclick = ()=>{ hMins=Math.min(60,hMins+1); updateHostButtons(); };
+  document.getElementById('hGoSolo').onclick = ()=>{ if(!viewRoom) return; send({type:'setmode', room:viewRoom, mode:'solo'}); openHStartDlg('solo'); };
+  document.getElementById('hGoTeam').onclick = ()=>{ if(!viewRoom) return; send({type:'setmode', room:viewRoom, mode:'team'}); openHStartDlg('team'); };
   document.getElementById('hAdjUp').onclick = ()=>{ if(viewRoom) send({type:'addtime', room:viewRoom, delta:60}); };
   document.getElementById('hAdjDn').onclick = ()=>{ if(viewRoom) send({type:'addtime', room:viewRoom, delta:-60}); };
-  // 보고 있는 방의 상태에 따라 버튼 표시 + 개인전/팀전·모드·시간 현재값 표시
+  // 보고 있는 방의 상태에 따라 버튼 표시
   function updateHostButtons(){
     const vr = (lastRooms.rooms||[]).find(r=>r.id===viewRoom);
     const show = !onWaitTab && !!vr;
@@ -772,21 +804,43 @@ function initHost(){
     const playing = ph==='playing';
     const setup = show && !playing;
     const setEl=(id,on)=>{ const e=document.getElementById(id); if(e) e.classList.toggle('hidden', !on); };
-    setEl('hStart', setup);
+    setEl('hGoSolo', setup); setEl('hGoTeam', setup);
     setEl('hFinish', show && playing);
     setEl('hReset', show && ph==='ended');
-    setEl('hSolo', setup); setEl('hTeam', setup);
-    setEl('hSurv', setup); setEl('hTime', setup);
-    setEl('hMinBox', setup && hType==='time');
     setEl('hTimeAdj', show && playing && vr && vr.gameType==='time');
     if(vr){
-      document.getElementById('hSolo').classList.toggle('on', vr.mode!=='team');
-      document.getElementById('hTeam').classList.toggle('on', vr.mode==='team');
-      document.getElementById('hSurv').classList.toggle('on', hType!=='time');
-      document.getElementById('hTime').classList.toggle('on', hType==='time');
-      document.getElementById('hMinVal').textContent=hMins;
+      document.getElementById('hGoSolo').classList.toggle('on', vr.mode!=='team');
+      document.getElementById('hGoTeam').classList.toggle('on', vr.mode==='team');
     }
+    if(!setup) closeHStartDlg();
   }
+
+  /* ---- 시작 설정 창 (교사) ---- */
+  let hsdType='survival', hsdMins=5, hsdMode='solo';
+  function openHStartDlg(mode){
+    hsdMode=mode; hsdType='survival'; hsdMins=5;
+    document.getElementById('hsdTitle').textContent=(mode==='team'?'팀전':'개인전')+' 시작';
+    refreshHStartDlg();
+    let bd=document.getElementById('hsdBackdrop');
+    if(!bd){ bd=document.createElement('div'); bd.id='hsdBackdrop'; bd.className='sdBackdrop'; bd.onclick=closeHStartDlg; document.body.appendChild(bd); }
+    bd.style.display='block';
+    document.getElementById('hStartDlg').classList.remove('hidden');
+  }
+  function closeHStartDlg(){ const d=document.getElementById('hStartDlg'); if(d) d.classList.add('hidden'); const bd=document.getElementById('hsdBackdrop'); if(bd) bd.style.display='none'; }
+  function refreshHStartDlg(){
+    document.getElementById('hsdSurv').classList.toggle('on', hsdType!=='time');
+    document.getElementById('hsdTime').classList.toggle('on', hsdType==='time');
+    document.getElementById('hsdMinBox').classList.toggle('hidden', hsdType!=='time');
+    document.getElementById('hsdTeamBox').classList.toggle('hidden', hsdMode!=='team');
+    document.getElementById('hsdMinVal').textContent=hsdMins;
+  }
+  document.getElementById('hsdSurv').onclick=()=>{ hsdType='survival'; refreshHStartDlg(); };
+  document.getElementById('hsdTime').onclick=()=>{ hsdType='time'; refreshHStartDlg(); };
+  document.getElementById('hsdMinDn').onclick=()=>{ hsdMins=Math.max(1,hsdMins-1); refreshHStartDlg(); };
+  document.getElementById('hsdMinUp').onclick=()=>{ hsdMins=Math.min(60,hsdMins+1); refreshHStartDlg(); };
+  document.querySelectorAll('#hsdTeamBox .hsdAuto').forEach(b=> b.onclick=()=>{ if(viewRoom){ const n=+b.dataset.n; send({type:'autoassign', room:viewRoom, teams:TEAM_PALETTE.slice(0,n).map(t=>t.id)}); } });
+  document.getElementById('hsdStart').onclick=()=>{ if(viewRoom){ send({type:'start', room:viewRoom, gameType:hsdType, minutes:hsdMins}); document.getElementById('hostOverlay').classList.add('hidden'); } closeHStartDlg(); };
+  document.getElementById('hsdClose').onclick=closeHStartDlg;
 
   // ⚙️ 설정 패널 열기/닫기
   document.getElementById('hSettingsBtn').onclick = ()=>{
@@ -1175,7 +1229,6 @@ function initPlayer(){
   }
 
   /* ---- 방장 조작바 ---- */
-  let lbType='survival', lbMins=5;
   function updateLeaderBar(){
     const bar = document.getElementById('leaderBar');
     const playing = (state==='playing' || state==='dead') && roomPhase==='playing';
@@ -1184,20 +1237,15 @@ function initPlayer(){
     bar.classList.toggle('hidden', !(setup || adjust));
     const setEl=(id,on)=>{ const e=document.getElementById(id); if(e) e.classList.toggle('hidden', !on); };
     document.querySelectorAll('#leaderBar .lbModes').forEach(el=> el.classList.toggle('hidden', !setup));
-    document.querySelector('#leaderBar .lbTitle').classList.toggle('hidden', false);
     setEl('lbTeamTools', setup && roomMode==='team');
-    setEl('lbMinBox', setup && lbType==='time');
-    setEl('lbStart', setup && roomPhase==='lobby');
     setEl('lbReset', setup && roomPhase==='ended');
     setEl('lbTimeAdj', adjust);
     if(setup){
-      document.getElementById('lbSolo').classList.toggle('on', roomMode!=='team');
-      document.getElementById('lbTeam').classList.toggle('on', roomMode==='team');
-      document.getElementById('lbSurv').classList.toggle('on', lbType!=='time');
-      document.getElementById('lbTime').classList.toggle('on', lbType==='time');
-      document.getElementById('lbMinVal').textContent=lbMins;
+      document.getElementById('lbGoSolo').classList.toggle('on', roomMode!=='team');
+      document.getElementById('lbGoTeam').classList.toggle('on', roomMode==='team');
       buildMyTeamButtons();
     }
+    if(!setup) closeStartDlg();
   }
   function buildMyTeamButtons(){
     const box=document.getElementById('lbMyTeam');
@@ -1211,17 +1259,39 @@ function initPlayer(){
     }
     [...box.children].forEach(b=> b.classList.toggle('on', b.dataset.team===myTeam));
   }
-  document.getElementById('lbSolo').onclick=()=> send({type:'setmode', mode:'solo'});
-  document.getElementById('lbTeam').onclick=()=> send({type:'setmode', mode:'team'});
-  document.getElementById('lbSurv').onclick=()=>{ lbType='survival'; updateLeaderBar(); };
-  document.getElementById('lbTime').onclick=()=>{ lbType='time'; updateLeaderBar(); };
-  document.getElementById('lbMinDn').onclick=()=>{ lbMins=Math.max(1, lbMins-1); updateLeaderBar(); };
-  document.getElementById('lbMinUp').onclick=()=>{ lbMins=Math.min(60, lbMins+1); updateLeaderBar(); };
-  document.querySelectorAll('#lbTeamTools .lbauto').forEach(b=> b.onclick=()=>{ const n=+b.dataset.n; send({type:'autoassign', teams:TEAM_PALETTE.slice(0,n).map(t=>t.id)}); });
-  document.getElementById('lbStart').onclick=()=> send({type:'start', gameType:lbType, minutes:lbMins});
+  // 개인전/팀전 → 모드 설정 + 시작 창 열기
+  document.getElementById('lbGoSolo').onclick=()=>{ send({type:'setmode', mode:'solo'}); openStartDlg('solo'); };
+  document.getElementById('lbGoTeam').onclick=()=>{ send({type:'setmode', mode:'team'}); openStartDlg('team'); };
   document.getElementById('lbReset').onclick=()=> send({type:'reset'});
   document.getElementById('lbAdjUp').onclick=()=> send({type:'addtime', delta:60});
   document.getElementById('lbAdjDn').onclick=()=> send({type:'addtime', delta:-60});
+
+  /* ---- 시작 설정 창 (방장) ---- */
+  let sdMode='solo', sdType='survival', sdMins=5;
+  function openStartDlg(mode){
+    sdMode=mode; sdType='survival'; sdMins=5;
+    document.getElementById('sdTitle').textContent = (mode==='team'?'팀전':'개인전') + ' 시작';
+    refreshStartDlg();
+    let bd=document.getElementById('sdBackdrop');
+    if(!bd){ bd=document.createElement('div'); bd.id='sdBackdrop'; bd.className='sdBackdrop'; bd.onclick=closeStartDlg; document.body.appendChild(bd); }
+    bd.style.display='block';
+    document.getElementById('startDlg').classList.remove('hidden');
+  }
+  function closeStartDlg(){ const d=document.getElementById('startDlg'); if(d) d.classList.add('hidden'); const bd=document.getElementById('sdBackdrop'); if(bd) bd.style.display='none'; }
+  function refreshStartDlg(){
+    document.getElementById('sdSurv').classList.toggle('on', sdType!=='time');
+    document.getElementById('sdTime').classList.toggle('on', sdType==='time');
+    document.getElementById('sdMinBox').classList.toggle('hidden', sdType!=='time');
+    document.getElementById('sdTeamBox').classList.toggle('hidden', sdMode!=='team');
+    document.getElementById('sdMinVal').textContent=sdMins;
+  }
+  document.getElementById('sdSurv').onclick=()=>{ sdType='survival'; refreshStartDlg(); };
+  document.getElementById('sdTime').onclick=()=>{ sdType='time'; refreshStartDlg(); };
+  document.getElementById('sdMinDn').onclick=()=>{ sdMins=Math.max(1,sdMins-1); refreshStartDlg(); };
+  document.getElementById('sdMinUp').onclick=()=>{ sdMins=Math.min(60,sdMins+1); refreshStartDlg(); };
+  document.querySelectorAll('#sdTeamBox .sdAuto').forEach(b=> b.onclick=()=>{ const n=+b.dataset.n; send({type:'autoassign', teams:TEAM_PALETTE.slice(0,n).map(t=>t.id)}); });
+  document.getElementById('sdStart').onclick=()=>{ send({type:'start', gameType:sdType, minutes:sdMins}); closeStartDlg(); };
+  document.getElementById('sdClose').onclick=closeStartDlg;
 
   /* ---- 방장: 학생 카드 눌러 팀 지정 (팝업) ---- */
   function openPTeamPicker(id, nm){
