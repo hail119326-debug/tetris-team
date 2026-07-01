@@ -289,6 +289,13 @@
   .atkToast.hit{top:28%;bottom:auto;color:#fecaca;background:rgba(220,38,38,.3);border-color:#ef4444}
   .atkToast.send{color:#bfdbfe;background:rgba(37,99,235,.32);border-color:#3b82f6}
   .atkToast.show{animation:kwpop 2s ease}
+  /* 공격받을 때: 화면 흔들림(약하게) + 빨간 번쩍 */
+  .atkFlash{position:absolute;inset:0;pointer-events:none;border-radius:inherit;opacity:0;
+    box-shadow:inset 0 0 0 4px #ef4444, inset 0 0 40px rgba(239,68,68,.55);background:rgba(239,68,68,.12)}
+  .atkFlash.show{animation:atkFlashAnim .4s ease}
+  @keyframes atkFlashAnim{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
+  .boardWrap.shake{animation:atkShake .35s ease}
+  @keyframes atkShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-2px)}60%{transform:translate(-3px,-1px)}80%{transform:translate(3px,1px)}}
   /* 시작/종료 카운트다운(화면 가운데 큰 숫자, 플레이 가림 없음) */
   .bigCount{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:45}
   #bigCount{position:absolute}
@@ -404,6 +411,7 @@
       <div class="boardCol">
         <div class="boardWrap">
           <canvas id="board" width="200" height="400"></canvas>
+          <div id="atkFlash" class="atkFlash"></div>
           <div id="kwToast" class="kwToast"></div>
           <div id="atkToast" class="atkToast"></div>
           <div id="bigCount" class="bigCount hidden"><span id="bigCountNum"></span></div>
@@ -1201,8 +1209,8 @@ function initPlayer(){
     if(m.type==='start'){ timeMode=(m.gameType==='time'); timeBase=0; timeEndsAt=m.endsAt||0; clearRevive(); startCountdown(); return; }
     if(m.type==='reset'){ hideBigCount(); backToRoomLobby(); return; }
     if(m.type==='team'){ setMyTeam(m.team); return; }
-    if(m.type==='garbage'){ if(G && state==='playing'){ addGarbage(m.amount); showAtkToast('🛡️ '+esc(m.from||'상대')+' 공격! +'+m.amount+'줄', 'hit'); sfx('atk_hit'); } addMyLog('🛡️ '+esc(m.from||'상대')+' → 나 '+m.amount+'줄','hit'); return; }
-    if(m.type==='attacked'){ showAtkToast('⚔️ '+esc(m.to||'상대')+'에게 +'+m.amount+'줄!', 'send'); sfx('atk_send'); addMyLog('⚔️ 나 → '+esc(m.to||'상대')+' '+m.amount+'줄','send'); return; }
+    if(m.type==='garbage'){ if(G && state==='playing'){ addGarbage(m.amount); showAtkToast('🛡️ '+esc(m.from||'상대')+'의 공격!  +'+m.amount+'줄', 'hit'); sfx('atk_hit'); flashHit(); } addMyLog('🛡️ '+esc(m.from||'상대')+' → 나 '+m.amount+'줄','hit'); return; }
+    if(m.type==='attacked'){ showAtkToast('⚡ '+esc(m.to||'상대')+' 공격 성공!  +'+m.amount+'줄', 'send'); sfx('atk_send'); flashSend(); addMyLog('⚔️ 나 → '+esc(m.to||'상대')+' '+m.amount+'줄','send'); return; }
     if(m.type==='gameover'){ hideBigCount(); clearRevive(); timeMode=false; onGameOver(m); return; }
     if(m.type==='endcountdown'){ runBigCount(m.sec||5, true); return; }
     if(m.type==='world'){ if(!myRoom) return; roomMode=m.mode; roomPhase=m.phase; amLeader=(m.leaderId===myId); if(m.gameType) timeMode=(m.gameType==='time'); if(m.endsAt) timeEndsAt=m.endsAt; updateLeaderBar(); onWorld(m); return; }
@@ -1374,6 +1382,18 @@ function initPlayer(){
     void el.offsetWidth;
     clearTimeout(atkToastTimer);
     atkToastTimer=setTimeout(()=>{ el.className='atkToast '+kind; }, 2000);
+  }
+  // 공격받음: 보드 흔들림 + 빨간 번쩍
+  function flashHit(){
+    const wrap=document.querySelector('.boardWrap'); const fl=document.getElementById('atkFlash');
+    if(wrap){ wrap.classList.remove('shake'); void wrap.offsetWidth; wrap.classList.add('shake'); setTimeout(()=>wrap.classList.remove('shake'),380); }
+    if(fl){ fl.classList.remove('show'); void fl.offsetWidth; fl.classList.add('show'); setTimeout(()=>fl.classList.remove('show'),420); }
+  }
+  // 공격 성공(전송): 파란 번쩍 살짝
+  function flashSend(){
+    const fl=document.getElementById('atkFlash');
+    if(fl){ fl.style.boxShadow='inset 0 0 0 4px #3b82f6, inset 0 0 40px rgba(59,130,246,.5)'; fl.classList.remove('show'); void fl.offsetWidth; fl.classList.add('show');
+      setTimeout(()=>{ fl.classList.remove('show'); fl.style.boxShadow=''; },420); }
   }
   let bigCountTimer=null;
   function runBigCount(sec, isEnd){
