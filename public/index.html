@@ -819,6 +819,8 @@ function initHost(){
   let hsdType='survival', hsdMins=5, hsdMode='solo';
   function openHStartDlg(mode){
     hsdMode=mode; hsdType='survival'; hsdMins=5;
+    const dlg=document.getElementById('hStartDlg');
+    if(dlg.parentElement !== document.body) document.body.appendChild(dlg);   // 맨 위층으로 (클릭 뺏김 방지)
     document.getElementById('hsdTitle').textContent=(mode==='team'?'팀전':'개인전')+' 시작';
     refreshHStartDlg();
     let bd=document.getElementById('hsdBackdrop');
@@ -1270,6 +1272,8 @@ function initPlayer(){
   let sdMode='solo', sdType='survival', sdMins=5;
   function openStartDlg(mode){
     sdMode=mode; sdType='survival'; sdMins=5;
+    const dlg=document.getElementById('startDlg');
+    if(dlg.parentElement !== document.body) document.body.appendChild(dlg);   // 맨 위층으로 (클릭 뺏김 방지)
     document.getElementById('sdTitle').textContent = (mode==='team'?'팀전':'개인전') + ' 시작';
     refreshStartDlg();
     let bd=document.getElementById('sdBackdrop');
