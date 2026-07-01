@@ -38,6 +38,9 @@
   .topbar .rank{color:var(--accent);font-weight:800}
   .roomTag{font-weight:800;font-size:13px;color:#0b0e1a;background:var(--accent);border-radius:999px;padding:2px 12px}
   .roomTag:empty{display:none}
+  .timeLeft{font-weight:900;font-size:16px;color:#0b0e1a;background:#facc15;border-radius:999px;padding:2px 12px;font-variant-numeric:tabular-nums}
+  .timeLeft:empty{display:none}
+  .timeLeft.low{background:#ef4444;color:#fff}
   .roomTabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 10px}
   .roomTabs .rtab{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:10px;
     padding:8px 14px;font-size:14px;font-weight:800;cursor:pointer;display:flex;flex-direction:column;gap:1px;line-height:1.2}
@@ -71,6 +74,9 @@
   .leaderBar .lbMyTeam{display:flex;gap:3px}
   .leaderBar .lbMyTeam .tc{width:20px;height:20px;border-radius:6px;border:2px solid transparent;cursor:pointer}
   .leaderBar .lbMyTeam .tc.on{border-color:#fff}
+  .leaderBar .lbMinBox{display:flex;align-items:center;gap:4px;font-weight:800;font-size:13px}
+  .leaderBar .lbMinBox button{padding:4px 10px;font-size:14px}
+  .leaderBar .lbMinBox b{min-width:16px;text-align:center;font-size:15px;color:var(--accent)}
   .stage{flex:1;display:flex;gap:10px;min-height:0}
   .mainCol{display:flex;gap:10px;min-height:0;flex:0 0 auto;justify-content:center;order:2}   /* 내 보드: 오른쪽 */
   .boardWrap{position:relative;display:flex;align-items:center}
@@ -220,6 +226,9 @@
   .hbtn.settings.on{background:linear-gradient(90deg,var(--accent2),var(--accent));color:#06121f;border-color:transparent}
   .hbtn.hmode{background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:12px 18px}
   .hbtn.hmode.on{background:var(--accent);color:#06121f;border-color:var(--accent)}
+  .hMinBox{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:15px;color:var(--text)}
+  .hMinBox button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:15px;font-weight:800;cursor:pointer}
+  .hMinBox b{min-width:20px;text-align:center;color:var(--accent);font-size:18px}
   /* ⚙️ 설정 패널 (접기/펼치기) */
   .hSettings{display:flex;flex-direction:column;gap:10px;background:var(--panel);border:1px solid var(--line);
     border-radius:14px;padding:12px;margin-top:4px}
@@ -335,6 +344,7 @@
     <span class="me" id="meName">-</span>
     <span class="roomTag" id="meRoom"></span>
     <span class="teamTag" id="meTeam"></span>
+    <span class="timeLeft" id="timeLeft"></span>
     <span class="rank" id="meRank"></span>
   </div>
   <div id="leaderBar" class="leaderBar hidden">
@@ -351,8 +361,16 @@
       <span class="lbHint">내 팀:</span><span id="lbMyTeam" class="lbMyTeam"></span>
       <span class="lbHint2">학생 카드를 눌러 팀 지정</span>
     </div>
+    <div class="lbModes" style="margin-left:6px">
+      <button id="lbSurv" class="lbmode on">서바이벌</button>
+      <button id="lbTime" class="lbmode">시간</button>
+    </div>
+    <span id="lbMinBox" class="lbMinBox hidden">
+      <button id="lbMinDn">−</button><b id="lbMinVal">5</b>분<button id="lbMinUp">+</button>
+    </span>
     <button id="lbStart" class="lbstart">▶ 시작</button>
     <button id="lbReset" class="lbreset hidden">🔄 다시</button>
+    <span id="lbTimeAdj" class="lbMinBox hidden"><button id="lbAdjDn">−1분</button><button id="lbAdjUp">＋1분</button></span>
   </div>
   <div class="stage">
     <div class="mainCol">
@@ -418,13 +436,18 @@
     <h1>🎮 테트리스 배틀 (방 관리)</h1>
     <span class="pill">접속 <b id="hCount">0</b>명</span>
     <span class="pill" id="hConn" style="font-weight:800">🔴 연결 중…</span>
+    <span class="timeLeft" id="hTimeLeft"></span>
     <div class="joinUrls" id="joinUrls"><span class="pill">학생 접속 주소…</span></div>
     <div class="spacer"></div>
     <button class="hbtn hmode" id="hSolo">개인전</button>
     <button class="hbtn hmode" id="hTeam">팀전</button>
+    <button class="hbtn hmode" id="hSurv">서바이벌</button>
+    <button class="hbtn hmode" id="hTime">시간</button>
+    <span id="hMinBox" class="hMinBox hidden"><button id="hMinDn">−</button><b id="hMinVal">5</b>분<button id="hMinUp">＋</button></span>
     <button class="hbtn start hidden" id="hStart">▶ 시작</button>
     <button class="hbtn finish hidden" id="hFinish">⏱ 종료</button>
     <button class="hbtn reset hidden" id="hReset">🔄 리셋</button>
+    <span id="hTimeAdj" class="hMinBox hidden"><button id="hAdjDn">−1분</button><button id="hAdjUp">＋1분</button></span>
     <button class="hbtn assign hidden" id="hShowResult">📊 결과 보기</button>
     <button class="hbtn settings" id="hSettingsBtn">⚙️ 설정</button>
   </div>
@@ -664,6 +687,16 @@ function initHost(){
   const lbList = document.getElementById('lbList');
   const cards = new Map(); // id -> {el, canvas}
   let viewRoom = '', onWaitTab = false, lastRooms = { rooms: [], waiting: [] };
+  let viewEndsAt = 0, viewGameType = 'survival';
+  setInterval(()=>{
+    const el=document.getElementById('hTimeLeft'); if(!el) return;
+    const vr=(lastRooms.rooms||[]).find(r=>r.id===viewRoom);
+    if(!onWaitTab && viewGameType==='time' && vr && vr.phase==='playing' && viewEndsAt){
+      let ms=viewEndsAt-Date.now(); if(ms<0) ms=0;
+      const s=Math.ceil(ms/1000), mm=Math.floor(s/60), ss=s%60;
+      el.textContent='⏱ '+mm+':'+String(ss).padStart(2,'0'); el.classList.toggle('low', s<=10);
+    } else el.textContent='';
+  }, 250);
 
   // 학생 접속 주소 표시
   //  - 클라우드 배포(공개 주소)면: 현재 공개 주소 하나만 안내
@@ -719,26 +752,39 @@ function initHost(){
   loadQrLib(()=>{});   // 미리 불러두기
 
   document.getElementById('hShowResult').onclick = ()=> document.getElementById('hostOverlay').classList.remove('hidden');
-  document.getElementById('hStart').onclick = ()=>{ if(viewRoom) send({type:'start', room:viewRoom}); document.getElementById('hostOverlay').classList.add('hidden'); };
+  document.getElementById('hStart').onclick = ()=>{ if(viewRoom) send({type:'start', room:viewRoom, gameType:hType, minutes:hMins}); document.getElementById('hostOverlay').classList.add('hidden'); };
   document.getElementById('hFinish').onclick = ()=>{ if(viewRoom && confirm('이 방을 종료할까요? 10초 후 결과가 나옵니다.')) send({type:'finish', room:viewRoom}); };
   document.getElementById('hReset').onclick = ()=>{ if(viewRoom){ send({type:'reset', room:viewRoom}); document.getElementById('hostOverlay').classList.add('hidden'); hostHideCount(); document.getElementById('atkLog').innerHTML=''; } };
   document.getElementById('hSolo').onclick = ()=>{ if(viewRoom) send({type:'setmode', room:viewRoom, mode:'solo'}); };
   document.getElementById('hTeam').onclick = ()=>{ if(viewRoom) send({type:'setmode', room:viewRoom, mode:'team'}); };
-  // 보고 있는 방의 상태에 따라 버튼 표시 + 개인전/팀전 현재값 표시
+  let hType='survival', hMins=5;
+  document.getElementById('hSurv').onclick = ()=>{ hType='survival'; updateHostButtons(); };
+  document.getElementById('hTime').onclick = ()=>{ hType='time'; updateHostButtons(); };
+  document.getElementById('hMinDn').onclick = ()=>{ hMins=Math.max(1,hMins-1); updateHostButtons(); };
+  document.getElementById('hMinUp').onclick = ()=>{ hMins=Math.min(60,hMins+1); updateHostButtons(); };
+  document.getElementById('hAdjUp').onclick = ()=>{ if(viewRoom) send({type:'addtime', room:viewRoom, delta:60}); };
+  document.getElementById('hAdjDn').onclick = ()=>{ if(viewRoom) send({type:'addtime', room:viewRoom, delta:-60}); };
+  // 보고 있는 방의 상태에 따라 버튼 표시 + 개인전/팀전·모드·시간 현재값 표시
   function updateHostButtons(){
     const vr = (lastRooms.rooms||[]).find(r=>r.id===viewRoom);
     const show = !onWaitTab && !!vr;
     const ph = vr ? vr.phase : '';
-    document.getElementById('hStart').classList.toggle('hidden', !(show && ph!=='playing'));
-    document.getElementById('hFinish').classList.toggle('hidden', !(show && ph==='playing'));
-    document.getElementById('hReset').classList.toggle('hidden', !(show && ph==='ended'));
-    // 개인전/팀전 토글: 게임 시작 전(대기)에만 보임
-    const modeShow = show && ph!=='playing';
-    document.getElementById('hSolo').classList.toggle('hidden', !modeShow);
-    document.getElementById('hTeam').classList.toggle('hidden', !modeShow);
+    const playing = ph==='playing';
+    const setup = show && !playing;
+    const setEl=(id,on)=>{ const e=document.getElementById(id); if(e) e.classList.toggle('hidden', !on); };
+    setEl('hStart', setup);
+    setEl('hFinish', show && playing);
+    setEl('hReset', show && ph==='ended');
+    setEl('hSolo', setup); setEl('hTeam', setup);
+    setEl('hSurv', setup); setEl('hTime', setup);
+    setEl('hMinBox', setup && hType==='time');
+    setEl('hTimeAdj', show && playing && vr && vr.gameType==='time');
     if(vr){
       document.getElementById('hSolo').classList.toggle('on', vr.mode!=='team');
       document.getElementById('hTeam').classList.toggle('on', vr.mode==='team');
+      document.getElementById('hSurv').classList.toggle('on', hType!=='time');
+      document.getElementById('hTime').classList.toggle('on', hType==='time');
+      document.getElementById('hMinVal').textContent=hMins;
     }
   }
 
@@ -846,7 +892,7 @@ function initHost(){
       renderTabs(); if(onWaitTab) renderWaiting();
       return;
     }
-    if(m.type==='world'){ if(!onWaitTab){ viewRoom=m.room; renderHost(m); } return; }
+    if(m.type==='world'){ if(!onWaitTab){ viewRoom=m.room; viewEndsAt=m.endsAt||0; viewGameType=m.gameType||'survival'; renderHost(m); } return; }
     if(m.type==='gameover'){ if(!onWaitTab && m.room===viewRoom){ hostHideCount(); showWinner(m); } return; }
     if(m.type==='keywords'){
       const n = (m.words||[]).length;
@@ -1045,6 +1091,7 @@ function initPlayer(){
   let myName = '';
   let state = 'name'; // name | lobby(대기실) | roomlobby(방 안 대기) | playing | dead
   let myRoom = null, roomName = '', roomMode = 'solo', roomPhase = 'lobby', amLeader = false;
+  let timeMode = false, timeBase = 0, timeEndsAt = 0, reviveTimer = null;   // 시간 모드
   let G = null;       // 게임 상태
   let raf=0, lastT=0, acc=0, sendAcc=0;
   let myRank=0, myTotal=0;   // 최근 순위 (죽었을 때 표시용)
@@ -1092,20 +1139,20 @@ function initPlayer(){
     if(m.type==='welcome'){ myId=m.id; return; }
     if(m.type==='waiting'){ enterWaitingRoom(); return; }
     if(m.type==='roomset'){ enterRoom(m); return; }
-    if(m.type==='start'){ startCountdown(); return; }
+    if(m.type==='start'){ timeMode=(m.gameType==='time'); timeBase=0; timeEndsAt=m.endsAt||0; clearRevive(); startCountdown(); return; }
     if(m.type==='reset'){ hideBigCount(); backToRoomLobby(); return; }
     if(m.type==='team'){ setMyTeam(m.team); return; }
     if(m.type==='garbage'){ if(G && state==='playing'){ addGarbage(m.amount); showAtkToast('🛡️ '+esc(m.from||'상대')+' 공격! +'+m.amount+'줄', 'hit'); sfx('atk_hit'); } addMyLog('🛡️ '+esc(m.from||'상대')+' → 나 '+m.amount+'줄','hit'); return; }
     if(m.type==='attacked'){ showAtkToast('⚔️ '+esc(m.to||'상대')+'에게 +'+m.amount+'줄!', 'send'); sfx('atk_send'); addMyLog('⚔️ 나 → '+esc(m.to||'상대')+' '+m.amount+'줄','send'); return; }
-    if(m.type==='gameover'){ hideBigCount(); onGameOver(m); return; }
+    if(m.type==='gameover'){ hideBigCount(); clearRevive(); timeMode=false; onGameOver(m); return; }
     if(m.type==='endcountdown'){ runBigCount(m.sec||5, true); return; }
-    if(m.type==='world'){ if(!myRoom) return; roomMode=m.mode; roomPhase=m.phase; amLeader=(m.leaderId===myId); updateLeaderBar(); onWorld(m); return; }
+    if(m.type==='world'){ if(!myRoom) return; roomMode=m.mode; roomPhase=m.phase; amLeader=(m.leaderId===myId); if(m.gameType) timeMode=(m.gameType==='time'); if(m.endsAt) timeEndsAt=m.endsAt; updateLeaderBar(); onWorld(m); return; }
     if(m.type==='keywords'){ setKeywords(m.words); return; }
   };
 
   /* ---- 대기실 / 방 입장 ---- */
   function enterWaitingRoom(){
-    myRoom=null; roomName=''; amLeader=false; state='lobby';
+    myRoom=null; roomName=''; amLeader=false; state='lobby'; clearRevive(); timeMode=false;
     cancelAnimationFrame(raf); G=null; clearBoard(); clearMyLog(); hideResultUI();
     setMyTeam(null);
     document.getElementById('meRoom').textContent='';
@@ -1119,7 +1166,7 @@ function initPlayer(){
     backToRoomLobby();
   }
   function backToRoomLobby(){
-    state='roomlobby'; cancelAnimationFrame(raf); G=null;
+    state='roomlobby'; cancelAnimationFrame(raf); G=null; clearRevive(); timeMode=false;
     clearBoard(); clearMyLog(); hideResultUI();
     updateLeaderBar();
     const t = TEAM_BY_ID[myTeam];
@@ -1128,17 +1175,29 @@ function initPlayer(){
   }
 
   /* ---- 방장 조작바 ---- */
+  let lbType='survival', lbMins=5;
   function updateLeaderBar(){
     const bar = document.getElementById('leaderBar');
-    const show = amLeader && state!=='playing' && (roomPhase==='lobby' || roomPhase==='ended');
-    bar.classList.toggle('hidden', !show);
-    if(!show) return;
-    document.getElementById('lbSolo').classList.toggle('on', roomMode!=='team');
-    document.getElementById('lbTeam').classList.toggle('on', roomMode==='team');
-    document.getElementById('lbTeamTools').classList.toggle('hidden', roomMode!=='team');
-    document.getElementById('lbStart').classList.toggle('hidden', roomPhase!=='lobby');
-    document.getElementById('lbReset').classList.toggle('hidden', roomPhase!=='ended');
-    buildMyTeamButtons();
+    const playing = (state==='playing' || state==='dead') && roomPhase==='playing';
+    const setup = amLeader && !playing && (roomPhase==='lobby' || roomPhase==='ended');
+    const adjust = amLeader && playing && timeMode;   // 게임 중 시간 가감
+    bar.classList.toggle('hidden', !(setup || adjust));
+    const setEl=(id,on)=>{ const e=document.getElementById(id); if(e) e.classList.toggle('hidden', !on); };
+    document.querySelectorAll('#leaderBar .lbModes').forEach(el=> el.classList.toggle('hidden', !setup));
+    document.querySelector('#leaderBar .lbTitle').classList.toggle('hidden', false);
+    setEl('lbTeamTools', setup && roomMode==='team');
+    setEl('lbMinBox', setup && lbType==='time');
+    setEl('lbStart', setup && roomPhase==='lobby');
+    setEl('lbReset', setup && roomPhase==='ended');
+    setEl('lbTimeAdj', adjust);
+    if(setup){
+      document.getElementById('lbSolo').classList.toggle('on', roomMode!=='team');
+      document.getElementById('lbTeam').classList.toggle('on', roomMode==='team');
+      document.getElementById('lbSurv').classList.toggle('on', lbType!=='time');
+      document.getElementById('lbTime').classList.toggle('on', lbType==='time');
+      document.getElementById('lbMinVal').textContent=lbMins;
+      buildMyTeamButtons();
+    }
   }
   function buildMyTeamButtons(){
     const box=document.getElementById('lbMyTeam');
@@ -1154,9 +1213,15 @@ function initPlayer(){
   }
   document.getElementById('lbSolo').onclick=()=> send({type:'setmode', mode:'solo'});
   document.getElementById('lbTeam').onclick=()=> send({type:'setmode', mode:'team'});
+  document.getElementById('lbSurv').onclick=()=>{ lbType='survival'; updateLeaderBar(); };
+  document.getElementById('lbTime').onclick=()=>{ lbType='time'; updateLeaderBar(); };
+  document.getElementById('lbMinDn').onclick=()=>{ lbMins=Math.max(1, lbMins-1); updateLeaderBar(); };
+  document.getElementById('lbMinUp').onclick=()=>{ lbMins=Math.min(60, lbMins+1); updateLeaderBar(); };
   document.querySelectorAll('#lbTeamTools .lbauto').forEach(b=> b.onclick=()=>{ const n=+b.dataset.n; send({type:'autoassign', teams:TEAM_PALETTE.slice(0,n).map(t=>t.id)}); });
-  document.getElementById('lbStart').onclick=()=> send({type:'start'});
+  document.getElementById('lbStart').onclick=()=> send({type:'start', gameType:lbType, minutes:lbMins});
   document.getElementById('lbReset').onclick=()=> send({type:'reset'});
+  document.getElementById('lbAdjUp').onclick=()=> send({type:'addtime', delta:60});
+  document.getElementById('lbAdjDn').onclick=()=> send({type:'addtime', delta:-60});
 
   /* ---- 방장: 학생 카드 눌러 팀 지정 (팝업) ---- */
   function openPTeamPicker(id, nm){
@@ -1444,6 +1509,18 @@ function initPlayer(){
   function move(g,dx){ g.cur.c+=dx; if(collide(g,g.cur)) g.cur.c-=dx; else sfx('move'); }
 
   /* ============== 루프 / 렌더 ============== */
+  // 남은 시간 표시 (시간 모드)
+  function updateTimeLeft(){
+    const el=document.getElementById('timeLeft'); if(!el) return;
+    if(timeMode && timeEndsAt && (state==='playing'||state==='dead')){
+      let ms=timeEndsAt-Date.now(); if(ms<0) ms=0;
+      const s=Math.ceil(ms/1000), mm=Math.floor(s/60), ss=s%60;
+      el.textContent='⏱ '+mm+':'+String(ss).padStart(2,'0');
+      el.classList.toggle('low', s<=10);
+    } else el.textContent='';
+  }
+  setInterval(updateTimeLeft, 250);
+
   function beginGame(){
     state='playing'; G=newGame(); spawn(G);
     document.getElementById('leaderBar').classList.add('hidden');  // 게임 중엔 방장바 숨김
@@ -1456,6 +1533,7 @@ function initPlayer(){
     document.getElementById('level').textContent=1;
     lastT=performance.now(); acc=0; sendAcc=0;
     cancelAnimationFrame(raf); raf=requestAnimationFrame(loop);
+    updateLeaderBar();   // 시작 직후 방장 ±시간 바 갱신
   }
   function dropInterval(g){ return Math.max(80, 800 - (g.level-1)*65); }
 
@@ -1479,9 +1557,10 @@ function initPlayer(){
     }
     return out;
   }
-  function sendState(){ send({type:'state', score:G.score, lines:G.lines, atk:G.atkSent, combo:G.maxCombo, wbonus:G.wordBonus, cbonus:G.comboBonusTotal, board:encodeBoard(snapshot())}); }
+  function effScore(){ return timeMode ? (timeBase + (G?G.score:0)) : (G?G.score:0); }
+  function sendState(){ send({type:'state', score:effScore(), lines:G.lines, atk:G.atkSent, combo:G.maxCombo, wbonus:G.wordBonus, cbonus:G.comboBonusTotal, board:encodeBoard(snapshot())}); }
   function updateStats(){
-    document.getElementById('score').textContent=G.score;
+    document.getElementById('score').textContent=effScore();
     document.getElementById('lines').textContent=G.lines;
     document.getElementById('level').textContent=G.level;
   }
@@ -1541,13 +1620,38 @@ function initPlayer(){
   }
   function clearBoard(){ bctx.fillStyle='#070a14'; bctx.fillRect(0,0,board.width,board.height); nctx.clearRect(0,0,nextCv.width,nextCv.height); }
 
+  function clearRevive(){ if(reviveTimer){ clearTimeout(reviveTimer); reviveTimer=null; } }
   function endGame(){
     if(state!=='playing') return;
     state='dead'; cancelAnimationFrame(raf); stopSoft(); sfx('over');
+    if(timeMode){
+      timeBase += G.score;   // 누적 점수 은행에 저장
+      sendState(); send({type:'topout', score:timeBase, lines:G.lines, atk:G.atkSent, combo:G.maxCombo, wbonus:G.wordBonus, cbonus:G.comboBonusTotal});
+      updateStats();
+      // 5초 후 자동 부활 (시간이 남아있으면)
+      let n=5; setOverlay('부활까지', String(n), '점수는 계속 쌓여요 · 누적 '+timeBase+'점');
+      clearRevive();
+      const iv=setInterval(()=>{
+        n--;
+        if(timeEndsAt && Date.now()>=timeEndsAt){ clearInterval(iv); return; }  // 시간 끝나면 부활 안함
+        if(n>0) setOverlay('부활까지', String(n), '점수는 계속 쌓여요 · 누적 '+timeBase+'점');
+        else { clearInterval(iv); reviveTimer=null; if(state==='dead' && timeMode){ send({type:'revive'}); reviveGame(); } }
+      },1000);
+      reviveTimer=iv;
+      return;
+    }
     sendState(); send({type:'topout', score:G.score, lines:G.lines, atk:G.atkSent, combo:G.maxCombo, wbonus:G.wordBonus, cbonus:G.comboBonusTotal});
     updateStats();
     const rankTxt = myRank ? ('현재 '+myRank+' / '+myTotal+'위') : '';
     setOverlay('게임 오버','', '내 점수 '+G.score+'점 · '+rankTxt);
+  }
+  function reviveGame(){   // 시간 모드 부활: 새 보드, 누적 점수 유지
+    state='playing'; G=newGame(); spawn(G);
+    document.getElementById('leaderBar').classList.add('hidden');
+    hideOverlay();
+    lastT=performance.now(); acc=0; sendAcc=0;
+    cancelAnimationFrame(raf); raf=requestAnimationFrame(loop);
+    updateLeaderBar();
   }
   let lastFinal=null;   // 마지막 게임 결과 (다시 보기용)
   function onGameOver(m){
