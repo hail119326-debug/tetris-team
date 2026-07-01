@@ -56,8 +56,8 @@
   .waitingPane{padding:10px 14px}
   .waitingPane h2{margin:0 0 10px}
   .waitList{display:flex;flex-wrap:wrap;gap:8px}
-  .waitList .wchip{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 16px;font-weight:800;cursor:pointer}
-  .waitList .wchip:hover{border-color:var(--accent)}
+  .waitList .wchip{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 18px;font-weight:800;font-size:15px;cursor:pointer}
+  .waitList .wchip:hover{border-color:var(--accent);background:#283356}
   .waitList .wchip:active{transform:scale(.96)}
   .waitList .wempty{color:var(--muted);font-size:13px;padding:10px}
   .waitHint{color:var(--muted);font-size:12px;margin-top:10px}
@@ -963,7 +963,14 @@ function initHost(){
   /* ---- 방 탭 / 대기실 / 방 만들기 ---- */
   function renderTabs(){
     const bar=document.getElementById('roomTabs'); bar.innerHTML='';
+    // 대기실 먼저 (항상 맨 앞 고정)
+    const wc=(lastRooms.waiting||[]).length;
+    const wb=document.createElement('button'); wb.className='rtab wait'+(onWaitTab?' on':'');
+    wb.innerHTML='<span>🕒 대기실</span><small>'+wc+'명</small>';
+    wb.onclick=selectWaiting; bar.appendChild(wb);
+    // 방 만들기
     const mk=document.createElement('button'); mk.className='rnew'; mk.textContent='➕ 방 만들기'; mk.onclick=createRoom; bar.appendChild(mk);
+    // 방들
     (lastRooms.rooms||[]).forEach(r=>{
       const b=document.createElement('button'); b.className='rtab'+((!onWaitTab&&r.id===viewRoom)?' on':'');
       const phaseTxt=r.phase==='playing'?'진행중':(r.phase==='ended'?'종료':'대기');
@@ -972,10 +979,6 @@ function initHost(){
       b.onclick=()=> selectRoom(r.id);
       bar.appendChild(b);
     });
-    const wc=(lastRooms.waiting||[]).length;
-    const wb=document.createElement('button'); wb.className='rtab wait'+(onWaitTab?' on':'');
-    wb.innerHTML='<span>🕒 대기실</span><small>'+wc+'명</small>';
-    wb.onclick=selectWaiting; bar.appendChild(wb);
     updateHostButtons();
   }
   function selectRoom(rid){
