@@ -1517,7 +1517,7 @@ function initPlayer(){
     fog:    {emoji:'🤯', label:'안개'},
   };
   const ITEM_KEYS = ['clean','atk','bonus','shield','fog'];
-  const ITEM_CHANCE = 0.10;   // 블록에 아이템 붙을 확률
+  const ITEM_CHANCE = 0.15;   // 블록에 아이템 붙을 확률
 
   function newGame(){
     return {
@@ -1774,17 +1774,22 @@ function initPlayer(){
   function drawItem(x,y,item){
     const def=ITEMS[item]; if(!def) return;
     itemGlow=(itemGlow+1)%1000;
-    const pulse=0.6+0.4*Math.abs(Math.sin(itemGlow*0.15));
-    // 반짝이는 배경
+    const pulse=0.5+0.5*Math.abs(Math.sin(itemGlow*0.15));
+    const cx=x*CS+CS/2, cy=y*CS+CS/2;
     bctx.save();
-    bctx.globalAlpha=pulse*0.5;
-    bctx.fillStyle='#fff';
+    // 밝은 노란 배경 칸 (잘 보이게)
+    bctx.globalAlpha=1;
+    bctx.fillStyle='#fde047';                       // 노랑
     bctx.fillRect(x*CS+1, y*CS+1, CS-2, CS-2);
+    // 반짝이는 흰 테두리 (펄스)
+    bctx.globalAlpha=pulse;
+    bctx.strokeStyle='#fff'; bctx.lineWidth=2;
+    bctx.strokeRect(x*CS+2, y*CS+2, CS-4, CS-4);
     bctx.restore();
-    // 이모지
-    bctx.font = Math.floor(CS*0.68) + 'px sans-serif';
+    // 이모지 (크게)
+    bctx.font = Math.floor(CS*0.8) + 'px sans-serif';
     bctx.textAlign='center'; bctx.textBaseline='middle';
-    bctx.fillText(def.emoji, x*CS+CS/2, y*CS+CS/2+1);
+    bctx.fillText(def.emoji, cx, cy+1);
   }
   function drawGlyph(x,y,ch){
     bctx.fillStyle='rgba(0,0,0,.85)';
