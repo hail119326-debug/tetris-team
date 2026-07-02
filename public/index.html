@@ -101,6 +101,39 @@
   .startDlg .sdStart{flex:1;background:#22c55e;color:#06121f;border:none;border-radius:12px;padding:14px;font-size:17px;font-weight:900;cursor:pointer}
   .startDlg .sdClose{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:14px 18px;font-weight:800;cursor:pointer}
   .sdBackdrop{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.4)}
+  /* 퀴즈 문제 창 */
+  .quizBack{position:fixed;inset:0;z-index:10001;background:rgba(6,9,18,.75);display:flex;align-items:center;justify-content:center;padding:16px}
+  .quizCard{position:relative;width:min(94vw,360px);background:linear-gradient(180deg,#151b30,#101526);
+    border:1px solid var(--line);border-radius:22px;padding:22px 20px 20px;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+  .quizCard::before{content:"";position:absolute;inset:0;border-radius:22px;padding:2px;
+    background:linear-gradient(135deg,rgba(110,231,255,.55),rgba(167,139,250,.45),transparent 60%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+  .qHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .qBadge{display:inline-flex;align-items:center;gap:6px;font-weight:900;font-size:13px;color:#0b0e1a;background:linear-gradient(90deg,var(--accent),var(--accent2));padding:5px 12px;border-radius:999px}
+  .qTimer{font-weight:900;font-size:14px;color:#0b0e1a;background:#facc15;border-radius:999px;padding:4px 12px;font-variant-numeric:tabular-nums}
+  .qTimer.low{background:#ef4444;color:#fff}
+  .qType{font-size:11px;font-weight:800;color:var(--muted);letter-spacing:.5px;margin-bottom:6px}
+  .qText{font-size:19px;font-weight:800;line-height:1.4;margin:2px 0 18px}
+  .qOxRow{display:flex;gap:12px}
+  .qOx{flex:1;cursor:pointer;border:2px solid var(--line);border-radius:16px;padding:18px 0;background:var(--panel2);text-align:center;font-weight:900;color:var(--text)}
+  .qOx .big{font-size:38px;line-height:1;display:block;margin-bottom:6px}
+  .qOx.o{color:#5eead4} .qOx.x{color:#fda4af}
+  .qOx:active{transform:scale(.96)}
+  .qOpts{display:flex;flex-direction:column;gap:9px}
+  .qOpt{display:flex;align-items:center;gap:12px;cursor:pointer;border:2px solid var(--line);border-radius:13px;padding:13px 14px;background:var(--panel2);font-weight:700;font-size:15px;color:var(--text);text-align:left}
+  .qOpt .num{width:26px;height:26px;flex:0 0 26px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:14px;color:#0b0e1a;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .qOpt:active{transform:scale(.98)}
+  .qSubWrap{display:flex;flex-direction:column;gap:12px}
+  .qSubIn{width:100%;background:#0c1122;border:2px solid var(--line);border-radius:13px;padding:14px 16px;color:var(--text);font-size:17px;font-weight:700;outline:none}
+  .qSubIn:focus{border-color:var(--accent)}
+  .qSubBtn{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#0b0e1a;border:none;border-radius:13px;padding:13px;font-size:16px;font-weight:900;cursor:pointer}
+  .qSubHint{font-size:11px;color:var(--muted);text-align:center}
+  .qResult{text-align:center;padding:8px 0 2px}
+  .qResult .em{font-size:48px;margin-bottom:6px}
+  .qResult .msg{font-size:24px;font-weight:900;margin-bottom:4px}
+  .qResult.ok .msg{color:#6ee7b7} .qResult.no .msg{color:#fda4af}
+  .qResult .sub{font-size:14px;color:var(--muted);font-weight:700}
+  .qResult .plus{margin-top:10px;font-size:22px;font-weight:900;color:#facc15}
   .stage{flex:1;display:flex;gap:10px;min-height:0}
   .mainCol{display:flex;gap:10px;min-height:0;flex:0 0 auto;justify-content:center;order:2}   /* 내 보드: 오른쪽 */
   .boardWrap{position:relative;display:flex;align-items:center}
@@ -312,6 +345,10 @@
   /* 방어막 배지 */
   .shieldBadge{font-weight:900;font-size:15px;color:#0b0e1a;background:#38bdf8;border-radius:999px;padding:2px 12px}
   .shieldBadge:empty{display:none}
+  .quizHelp{font-size:12px;color:var(--muted);line-height:1.7;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+  .quizHelp code{color:var(--accent);font-size:11.5px;background:rgba(110,231,255,.08);padding:1px 5px;border-radius:4px;font-family:ui-monospace,monospace}
+  .quizTimerToggle{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px;color:var(--text);cursor:pointer}
+  .quizTimerToggle input{width:18px;height:18px;cursor:pointer}
   /* 역전! 배너 (학생·교사 공용) */
   .reversalBanner{position:fixed;left:50%;top:16%;transform:translate(-50%,-20px);z-index:10000;
     pointer-events:none;opacity:0;white-space:nowrap;
@@ -542,6 +579,25 @@
         <button class="hbtn reset" id="hClearKw">키워드 지우기</button>
       </div>
       <span class="pill" id="kwNow" style="color:var(--muted)">등록된 키워드 없음</span>
+    </div>
+    <div class="teamCtl" style="border-top:1px solid var(--line);padding-top:12px;margin-top:4px">
+      <span class="pill">❓ 퀴즈 문제 <span style="color:var(--muted);font-weight:700">(모든 방 · 한 줄에 하나)</span></span>
+      <div class="quizHelp">
+        <b>형식</b> (앞에 종류 표시):<br>
+        <code>[OX] 광합성은 낮에 일어난다 | O</code><br>
+        <code>[객] 광합성 장소는? | 잎 | 뿌리 | 줄기 | 정답:1</code><br>
+        <code>[주] 물의 화학식은? | H2O / 물</code>
+      </div>
+      <textarea id="hQuiz" rows="5" placeholder="[OX] 지구는 둥글다 | O&#10;[객] 가장 큰 행성은? | 목성 | 지구 | 화성 | 정답:1&#10;[주] 물의 화학식은? | H2O / 물"></textarea>
+      <label class="quizTimerToggle"><input type="checkbox" id="hQuizTimer" checked> 문제 시간제한 켜기 <span style="color:var(--muted);font-weight:700">(O/X 10초·객관식 15초·주관식 20초)</span></label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="hbtn assign" id="hSetQuiz">문제 등록</button>
+        <button class="hbtn settings" id="hExportQuiz">💾 내보내기</button>
+        <button class="hbtn settings" id="hImportQuiz">📂 불러오기</button>
+        <button class="hbtn reset" id="hClearQuiz">지우기</button>
+      </div>
+      <input type="file" id="hQuizFile" accept=".txt,.json" style="display:none">
+      <span class="pill" id="quizNow" style="color:var(--muted)">등록된 문제 없음</span>
     </div>
   </div>
   <!-- 방 탭 (➕ 만들기 / 각 방 / 대기실) -->
@@ -911,6 +967,55 @@ function initHost(){
   }
   document.getElementById('hSetKw').onclick = setKw;
   document.getElementById('hClearKw').onclick = ()=>{ kwInput.value=''; send({type:'setkeyword', words:[]}); hostToast('키워드 지움 (모든 방)'); };
+
+  /* ===== 퀴즈 문제 등록 / 내보내기 / 불러오기 ===== */
+  const quizInput = document.getElementById('hQuiz');
+  function normAns(s){ return String(s||'').replace(/\s+/g,'').toLowerCase(); }
+  function parseQuiz(text){
+    const out=[]; const bad=[];
+    text.split('\n').map(s=>s.trim()).filter(Boolean).forEach(line=>{
+      let m;
+      if((m=line.match(/^\[\s*ox\s*\]\s*(.+)$/i))){
+        const p=m[1].split('|').map(s=>s.trim());
+        const q=p[0], a=(p[1]||'').toUpperCase();
+        if(q && (a==='O'||a==='X')) out.push({t:'ox', q, a}); else bad.push(line);
+      } else if((m=line.match(/^\[\s*(?:객|mc)\s*\]\s*(.+)$/i))){
+        const p=m[1].split('|').map(s=>s.trim());
+        const q=p[0]; let ai=-1; const opts=[];
+        for(let i=1;i<p.length;i++){ const mm=p[i].match(/^정답\s*[:：]\s*(\d+)$/); if(mm) ai=parseInt(mm[1],10)-1; else opts.push(p[i]); }
+        if(q && opts.length>=2 && ai>=0 && ai<opts.length) out.push({t:'mc', q, opts, a:ai}); else bad.push(line);
+      } else if((m=line.match(/^\[\s*(?:주|sa)\s*\]\s*(.+)$/i))){
+        const p=m[1].split('|').map(s=>s.trim());
+        const q=p[0]; const ans=(p[1]||'').split('/').map(normAns).filter(Boolean);
+        if(q && ans.length) out.push({t:'sa', q, a:ans}); else bad.push(line);
+      } else bad.push(line);
+    });
+    return {out, bad};
+  }
+  function registerQuiz(){
+    const {out, bad} = parseQuiz(quizInput.value);
+    const timer = document.getElementById('hQuizTimer').checked;
+    send({type:'setquiz', questions:out, timer});
+    let msg = '문제 '+out.length+'개 등록';
+    if(bad.length) msg += ' · 형식오류 '+bad.length+'줄 무시';
+    hostToast(msg);
+  }
+  document.getElementById('hSetQuiz').onclick = registerQuiz;
+  document.getElementById('hClearQuiz').onclick = ()=>{ quizInput.value=''; send({type:'setquiz', questions:[], timer:document.getElementById('hQuizTimer').checked}); hostToast('문제 지움'); };
+  document.getElementById('hExportQuiz').onclick = ()=>{
+    const blob = new Blob([quizInput.value], {type:'text/plain;charset=utf-8'});
+    const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+    const d = new Date(); const stamp = d.getFullYear()+''+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+    a.download = '퀴즈문제_'+stamp+'.txt'; a.click(); URL.revokeObjectURL(a.href);
+    hostToast('문제를 파일로 저장했어요');
+  };
+  document.getElementById('hImportQuiz').onclick = ()=> document.getElementById('hQuizFile').click();
+  document.getElementById('hQuizFile').onchange = (e)=>{
+    const f = e.target.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = ()=>{ quizInput.value = String(r.result||''); hostToast('불러왔어요 · [문제 등록]을 눌러 적용하세요'); };
+    r.readAsText(f); e.target.value='';
+  };
   // 카드에 팀 색 입히기(렌더와 즉시반영에서 공용)
   function styleCard(el, ptEl, team){
     const ti = TEAM_BY_ID[team];
@@ -1008,6 +1113,7 @@ function initHost(){
     }
     if(m.type==='attackfx'){ if(!onWaitTab) flashAttack(m.fromId, m.toId, m.amount); return; }
     if(m.type==='leadchange'){ showReversal(m); return; }
+    if(m.type==='quizinfo'){ const el=document.getElementById('quizNow'); if(el) el.textContent = m.count>0 ? ('등록된 문제 '+m.count+'개'+(m.timer?' · 시간제한 켬':' · 시간제한 끔')) : '등록된 문제 없음'; return; }
     if(m.type==='start'){ if(!onWaitTab) hostRunCount(5, false); return; }
     if(m.type==='endcountdown'){ if(!onWaitTab) hostRunCount(m.sec||5, true); return; }
   };
@@ -1204,6 +1310,7 @@ function initPlayer(){
   let state = 'name'; // name | lobby(대기실) | roomlobby(방 안 대기) | playing | dead
   let myRoom = null, roomName = '', roomMode = 'solo', roomPhase = 'lobby', amLeader = false;
   let timeMode = false, timeBase = 0, timeEndsAt = 0, reviveTimer = null;   // 시간 모드
+  let quizList = [], quizTimerOn = true, quizActive = false;   // 퀴즈
   let G = null;       // 게임 상태
   let raf=0, lastT=0, acc=0, sendAcc=0;
   let myRank=0, myTotal=0;   // 최근 순위 (죽었을 때 표시용)
@@ -1256,10 +1363,11 @@ function initPlayer(){
     if(m.type==='team'){ setMyTeam(m.team); return; }
     if(m.type==='garbage'){ if(G && state==='playing'){ const blocked=addGarbage(m.amount); if(!blocked){ showAtkToast('💥 '+esc(m.from||'상대')+'의 공격!  +'+m.amount+'줄', 'hit'); sfx('atk_hit'); flashHit(); } } addMyLog('🛡️ '+esc(m.from||'상대')+' → 나 '+m.amount+'줄','hit'); return; }
     if(m.type==='attacked'){ showAtkToast('⚡ '+esc(m.to||'상대')+' 공격 성공!  +'+m.amount+'줄', 'send'); sfx('atk_send'); flashSend(); addMyLog('⚔️ 나 → '+esc(m.to||'상대')+' '+m.amount+'줄','send'); return; }
+    if(m.type==='quiz'){ quizList = Array.isArray(m.questions)?m.questions:[]; quizTimerOn = m.timer!==false; return; }
     if(m.type==='fogged'){ if(G && state==='playing') showFog(); return; }
     if(m.type==='leadchange'){ showReversal(m); return; }
     if(m.type==='fogsent'){ addMyLog('🤯 나 → '+esc(m.to||'상대')+' 안개','send'); return; }
-    if(m.type==='gameover'){ hideBigCount(); clearRevive(); timeMode=false; onGameOver(m); return; }
+    if(m.type==='gameover'){ hideBigCount(); clearRevive(); killQuiz(); timeMode=false; onGameOver(m); return; }
     if(m.type==='endcountdown'){ runBigCount(m.sec||5, true); return; }
     if(m.type==='world'){ if(!myRoom) return; roomMode=m.mode; roomPhase=m.phase; amLeader=(m.leaderId===myId); if(m.gameType) timeMode=(m.gameType==='time'); if(m.endsAt) timeEndsAt=m.endsAt; updateLeaderBar(); onWorld(m); return; }
     if(m.type==='keywords'){ setKeywords(m.words); return; }
@@ -1267,7 +1375,7 @@ function initPlayer(){
 
   /* ---- 대기실 / 방 입장 ---- */
   function enterWaitingRoom(){
-    myRoom=null; roomName=''; amLeader=false; state='lobby'; clearRevive(); timeMode=false;
+    myRoom=null; roomName=''; amLeader=false; state='lobby'; clearRevive(); killQuiz(); timeMode=false;
     cancelAnimationFrame(raf); G=null; clearBoard(); clearMyLog(); hideResultUI();
     setMyTeam(null);
     document.getElementById('meRoom').textContent='';
@@ -1281,7 +1389,7 @@ function initPlayer(){
     backToRoomLobby();
   }
   function backToRoomLobby(){
-    state='roomlobby'; cancelAnimationFrame(raf); G=null; clearRevive(); timeMode=false;
+    state='roomlobby'; cancelAnimationFrame(raf); G=null; clearRevive(); killQuiz(); timeMode=false;
     clearBoard(); clearMyLog(); hideResultUI();
     updateLeaderBar();
     const t = TEAM_BY_ID[myTeam];
@@ -1405,8 +1513,8 @@ function initPlayer(){
     if(curComplete()){
       const word = kwList[kwIdx];
       kwDone[kwIdx] = true;
-      G.score += 500; G.wordBonus = (G.wordBonus||0) + 500; updateStats(); sendState();    // 단어 완성 보너스
-      showKwToast('🎉 ‘'+esc(word)+'’ 완성! +500', true);
+      G.score += 200; G.wordBonus = (G.wordBonus||0) + 200; updateStats(); sendState();    // 단어 완성 보너스
+      showKwToast('🎉 ‘'+esc(word)+'’ 완성! +200', true);
       try{ sfx('kw_done'); }catch(e){}                // 완성 팡파레
       pointToCurrent();                               // 다음 단어로
     } else {
@@ -1551,12 +1659,14 @@ function initPlayer(){
   };
   const ITEM_KEYS = ['clean','atk','bonus','shield','fog'];
   const ITEM_CHANCE = 0.15;   // 블록에 아이템 붙을 확률
+  const QUIZ_CHANCE = 0.10;   // 블록에 퀴즈칸 붙을 확률 (문제 있을 때만)
 
   function newGame(){
     return {
       grid: Array.from({length:ROWS},()=>Array(COLS).fill(0)),
       letters: Array.from({length:ROWS},()=>Array(COLS).fill(null)),   // 칸별 글자
       items: Array.from({length:ROWS},()=>Array(COLS).fill(null)),     // 칸별 아이템
+      quizmarks: Array.from({length:ROWS},()=>Array(COLS).fill(false)), // 칸별 퀴즈칸(❓)
       cur:null, queue:[], bag:[], score:0, lines:0, level:1, down:false, over:false, combo:-1,
       atkSent:0, maxCombo:0, wordBonus:0, comboBonusTotal:0,   // 통계: 공격줄, 최대콤보, 단어보너스, 콤보보너스
       shield:false,   // 방어막(다음 공격 1번 막기)
@@ -1572,18 +1682,23 @@ function initPlayer(){
     const type = g.queue.shift();
     ensureQueue(g);
     const mat = SHAPES[type].map(r=>r.slice());
-    const piece = { type, mat, r:0, c:((COLS - mat[0].length)>>1), lc:null, ic:null };
+    const piece = { type, mat, r:0, c:((COLS - mat[0].length)>>1), lc:null, ic:null, qc:null };
     // 채워진 칸 목록
     const cells=[];
     for(let y=0;y<mat.length;y++) for(let x=0;x<mat[y].length;x++) if(mat[y][x]) cells.push({x,y});
-    // 아이템(10%) 우선, 아니면 키워드 글자(50%)
-    let placedItem=false;
+    // 아이템(15%) → 퀴즈칸(10%, 문제 있을 때) → 키워드 글자(50%) 중 하나만
+    let placed=false;
     if(cells.length && Math.random() < ITEM_CHANCE){
       const cell = cells[(Math.random()*cells.length)|0];
       piece.ic = { x:cell.x, y:cell.y, item: ITEM_KEYS[(Math.random()*ITEM_KEYS.length)|0] };
-      placedItem=true;
+      placed=true;
     }
-    if(!placedItem && kwIdx>=0 && Math.random() < 0.5){
+    if(!placed && quizList.length && cells.length && Math.random() < QUIZ_CHANCE){
+      const cell = cells[(Math.random()*cells.length)|0];
+      piece.qc = { x:cell.x, y:cell.y };
+      placed=true;
+    }
+    if(!placed && kwIdx>=0 && Math.random() < 0.5){
       const ch = pickLetter();
       if(ch){
         const cell = cells[(Math.random()*cells.length)|0];
@@ -1609,19 +1724,21 @@ function initPlayer(){
     return out;
   }
   function tryRotate(g){
-    const p=g.cur, old=p.mat, oldLc=p.lc, oldIc=p.ic, n=p.mat.length;
+    const p=g.cur, old=p.mat, oldLc=p.lc, oldIc=p.ic, oldQc=p.qc, n=p.mat.length;
     p.mat = rotateCW(p.mat);
     if(p.lc) p.lc = { x:n-1-p.lc.y, y:p.lc.x, ch:p.lc.ch };   // 글자 칸도 같이 회전
     if(p.ic) p.ic = { x:n-1-p.ic.y, y:p.ic.x, item:p.ic.item }; // 아이템 칸도 회전
+    if(p.qc) p.qc = { x:n-1-p.qc.y, y:p.qc.x };                 // 퀴즈 칸도 회전
     for(const dx of [0,-1,1,-2,2]){ p.c+=dx; if(!collide(g,p)){ sfx('rotate'); return; } p.c-=dx; }
-    p.mat = old; p.lc = oldLc; p.ic = oldIc; // 실패 시 원복
+    p.mat = old; p.lc = oldLc; p.ic = oldIc; p.qc = oldQc; // 실패 시 원복
   }
   function lock(g){
     const p=g.cur, t=TI[p.type];
     for(let y=0;y<p.mat.length;y++) for(let x=0;x<p.mat[y].length;x++){
       if(p.mat[y][x]){ const gy=p.r+y, gx=p.c+x; if(gy>=0){ g.grid[gy][gx]=t;
         if(p.lc && p.lc.x===x && p.lc.y===y) g.letters[gy][gx]=p.lc.ch;
-        if(p.ic && p.ic.x===x && p.ic.y===y) g.items[gy][gx]=p.ic.item; } }
+        if(p.ic && p.ic.x===x && p.ic.y===y) g.items[gy][gx]=p.ic.item;
+        if(p.qc && p.qc.x===x && p.qc.y===y) g.quizmarks[gy][gx]=true; } }
     }
     g.down=false;          // 조각이 놓이면 소프트 드롭 해제 → 다음 조각은 정상 속도
     sfx('lock');
@@ -1629,14 +1746,16 @@ function initPlayer(){
     spawn(g);
   }
   function clearLines(g){
-    let cleared=0; const gotItems=[];
+    let cleared=0; const gotItems=[]; let gotQuiz=false;
     for(let y=ROWS-1;y>=0;y--){
       if(g.grid[y].every(v=>v!==0)){
         for(let x=0;x<COLS;x++){ const ch=g.letters[y][x]; if(ch) collectLetter(ch); }  // 글자 수집
         for(let x=0;x<COLS;x++){ const it=g.items[y][x]; if(it) gotItems.push(it); }      // 아이템 수집
+        for(let x=0;x<COLS;x++){ if(g.quizmarks[y][x]) gotQuiz=true; }                     // 퀴즈칸 감지
         g.grid.splice(y,1); g.grid.unshift(Array(COLS).fill(0));
         g.letters.splice(y,1); g.letters.unshift(Array(COLS).fill(null));
         g.items.splice(y,1); g.items.unshift(Array(COLS).fill(null));
+        g.quizmarks.splice(y,1); g.quizmarks.unshift(Array(COLS).fill(false));
         cleared++; y++;
       }
     }
@@ -1659,6 +1778,7 @@ function initPlayer(){
     } else {
       g.combo=-1;                              // 줄 못 지움 → 콤보 끊김
     }
+    if(gotQuiz && quizList.length) openQuiz();   // 퀴즈칸 있었으면 문제 출제
   }
   function addGarbage(n){
     const g=G;
@@ -1667,10 +1787,10 @@ function initPlayer(){
     // 위쪽 n줄에 블록이 있으면 밀려서 탈락
     for(let y=0;y<n;y++) if(g.grid[y].some(v=>v!==0)){ g.over=true; }
     for(let i=0;i<n;i++){
-      g.grid.shift(); g.letters.shift(); g.items.shift();
+      g.grid.shift(); g.letters.shift(); g.items.shift(); g.quizmarks.shift();
       const row=Array(COLS).fill(8);
       row[(Math.random()*COLS)|0]=0;          // 구멍 하나
-      g.grid.push(row); g.letters.push(Array(COLS).fill(null)); g.items.push(Array(COLS).fill(null));
+      g.grid.push(row); g.letters.push(Array(COLS).fill(null)); g.items.push(Array(COLS).fill(null)); g.quizmarks.push(Array(COLS).fill(false));
     }
     if(g.cur){ while(collide(g,g.cur)){ g.cur.r--; if(g.cur.r<-3){ g.over=true; break; } } }
     if(g.over) endGame();
@@ -1678,15 +1798,15 @@ function initPlayer(){
   function cleanBottom(n){   // 아래 n줄 삭제 (위에 빈 줄 추가 → 스택이 내려옴)
     const g=G;
     for(let i=0;i<n;i++){
-      g.grid.pop(); g.letters.pop(); g.items.pop();
-      g.grid.unshift(Array(COLS).fill(0)); g.letters.unshift(Array(COLS).fill(null)); g.items.unshift(Array(COLS).fill(null));
+      g.grid.pop(); g.letters.pop(); g.items.pop(); g.quizmarks.pop();
+      g.grid.unshift(Array(COLS).fill(0)); g.letters.unshift(Array(COLS).fill(null)); g.items.unshift(Array(COLS).fill(null)); g.quizmarks.unshift(Array(COLS).fill(false));
     }
   }
   function fireItem(item){
     const g=G; if(!g) return;
     if(item==='clean'){ cleanBottom(2); showItemToast('🧹 청소!  아래 2줄 삭제'); sfx('clear'); }
     else if(item==='atk'){ send({type:'itematk', amount:1}); showItemToast('⚔️ 공격!  상대에게 +1줄'); sfx('atk_send'); flashSend(); }
-    else if(item==='bonus'){ g.score+=500; showItemToast('🎁 보너스!  +500점'); sfx('combo2'); }
+    else if(item==='bonus'){ g.score+=100; showItemToast('🎁 보너스!  +100점'); sfx('combo2'); }
     else if(item==='shield'){ g.shield=true; updateShieldBadge(); showItemToast('🛡️ 방어막!  다음 공격 1번 막기'); sfx('combo1'); }
     else if(item==='fog'){ send({type:'fog'}); showItemToast('🤯 안개!  상대 화면 흐리기'); sfx('atk_send'); }
   }
@@ -1704,6 +1824,93 @@ function initPlayer(){
     clearTimeout(fogTimer); fogTimer=setTimeout(()=>{ el.classList.remove('show'); }, 3000);
   }
   function clearFog(){ const el=document.getElementById('fogOverlay'); if(el) el.classList.remove('show'); clearTimeout(fogTimer); }
+
+  /* ===== 퀴즈 문제 창 ===== */
+  const QUIZ_TIME = { ox:10, mc:15, sa:20 };
+  let quizTimerIv=null;
+  function normAns(s){ return String(s||'').replace(/\s+/g,'').toLowerCase(); }
+  function openQuiz(){
+    if(quizActive || !quizList.length) return;
+    const q = quizList[(Math.random()*quizList.length)|0];
+    quizActive = true;
+    try{ sfx('count'); }catch(e){}
+    const back = document.createElement('div'); back.className='quizBack'; back.id='quizBack';
+    const card = document.createElement('div'); card.className='quizCard';
+    const typeLabel = q.t==='ox'?'O / X 문제':q.t==='mc'?'객관식':'주관식';
+    const head = document.createElement('div'); head.className='qHead';
+    head.innerHTML = '<span class="qBadge">❓ 퀴즈</span>';
+    const timerEl = document.createElement('span'); timerEl.className='qTimer';
+    if(quizTimerOn){ head.appendChild(timerEl); }
+    card.appendChild(head);
+    const typeEl=document.createElement('div'); typeEl.className='qType'; typeEl.textContent=typeLabel; card.appendChild(typeEl);
+    const qtext=document.createElement('div'); qtext.className='qText'; qtext.textContent=q.q; card.appendChild(qtext);
+
+    const done = (correct, correctText) => finishQuiz(back, correct, correctText);
+
+    if(q.t==='ox'){
+      const row=document.createElement('div'); row.className='qOxRow';
+      const bo=document.createElement('button'); bo.className='qOx o'; bo.innerHTML='<span class="big">⭕</span>맞다';
+      const bx=document.createElement('button'); bx.className='qOx x'; bx.innerHTML='<span class="big">❌</span>아니다';
+      bo.onclick=()=>done(q.a==='O', q.a==='O'?'O':'X');
+      bx.onclick=()=>done(q.a==='X', q.a==='O'?'O':'X');
+      row.append(bo,bx); card.appendChild(row);
+    } else if(q.t==='mc'){
+      const box=document.createElement('div'); box.className='qOpts';
+      q.opts.forEach((opt,i)=>{
+        const b=document.createElement('button'); b.className='qOpt';
+        b.innerHTML='<span class="num">'+(i+1)+'</span>'; const sp=document.createElement('span'); sp.textContent=opt; b.appendChild(sp);
+        b.onclick=()=>done(i===q.a, q.opts[q.a]);
+        box.appendChild(b);
+      });
+      card.appendChild(box);
+    } else { // sa
+      const wrap=document.createElement('div'); wrap.className='qSubWrap';
+      const inp=document.createElement('input'); inp.className='qSubIn'; inp.placeholder='정답을 입력하세요'; inp.autocomplete='off';
+      const btn=document.createElement('button'); btn.className='qSubBtn'; btn.textContent='제출하기';
+      const hint=document.createElement('div'); hint.className='qSubHint'; hint.textContent='대소문자·띄어쓰기는 신경 안 써도 돼요';
+      const submit=()=>{ const val=normAns(inp.value); const ok=q.a.some(a=>a===val); done(ok, q.a[0]); };
+      btn.onclick=submit;
+      inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); submit(); } });
+      wrap.append(inp,btn,hint); card.appendChild(wrap);
+      setTimeout(()=>inp.focus(), 50);
+    }
+    back.appendChild(card); document.body.appendChild(back);
+
+    // 타이머
+    if(quizTimerOn){
+      let left = QUIZ_TIME[q.t] || 15;
+      const paint=()=>{ timerEl.textContent='⏱ '+left+'초'; timerEl.classList.toggle('low', left<=5); };
+      paint();
+      quizTimerIv = setInterval(()=>{
+        left--; if(left<=0){ clearInterval(quizTimerIv); quizTimerIv=null; done(false, (q.t==='ox')?q.a:(q.t==='mc'?q.opts[q.a]:q.a[0])); }
+        else paint();
+      }, 1000);
+    }
+  }
+  function finishQuiz(back, correct, correctText){
+    if(quizTimerIv){ clearInterval(quizTimerIv); quizTimerIv=null; }
+    const card = back.querySelector('.quizCard');
+    if(correct && G){ G.score += 400; G.wordBonus = (G.wordBonus||0); updateStats(); sendState(); }
+    card.innerHTML = '<div class="qResult '+(correct?'ok':'no')+'">'
+      + '<div class="em">'+(correct?'🎉':'😅')+'</div>'
+      + '<div class="msg">'+(correct?'정답!':'아쉬워요')+'</div>'
+      + '<div class="sub">'+(correct?'잘했어요!':('정답은 <b style="color:#e8ecf7">'+esc(String(correctText))+'</b> 이었어요'))+'</div>'
+      + (correct?'<div class="plus">+400점</div>':'<div class="plus" style="color:#8b95b5">다음 기회에!</div>')
+      + '</div>';
+    try{ sfx(correct?'kw_done':'over'); }catch(e){}
+    setTimeout(()=>{ closeQuiz(); }, 1600);
+  }
+  function closeQuiz(){
+    const b=document.getElementById('quizBack'); if(b) b.remove();
+    if(quizTimerIv){ clearInterval(quizTimerIv); quizTimerIv=null; }
+    quizActive=false;
+    if(state==='playing'){ lastT=performance.now(); acc=0; cancelAnimationFrame(raf); raf=requestAnimationFrame(loop); }
+  }
+  function killQuiz(){   // 게임 끝/리셋 시 문제창 강제 정리 (루프 재시작 안 함)
+    const b=document.getElementById('quizBack'); if(b) b.remove();
+    if(quizTimerIv){ clearInterval(quizTimerIv); quizTimerIv=null; }
+    quizActive=false;
+  }
 
   function hardDrop(g){
     let d=0; while(!collide(g,{...g.cur,r:g.cur.r+1})){ g.cur.r++; d++; }
@@ -1739,7 +1946,7 @@ function initPlayer(){
     document.getElementById('lines').textContent=0;
     document.getElementById('level').textContent=1;
     lastT=performance.now(); acc=0; sendAcc=0;
-    clearFog(); updateShieldBadge();   // 아이템 상태 초기화
+    clearFog(); updateShieldBadge(); killQuiz();   // 아이템·퀴즈 상태 초기화
     cancelAnimationFrame(raf); raf=requestAnimationFrame(loop);
     updateLeaderBar();   // 시작 직후 방장 ±시간 바 갱신
   }
@@ -1747,6 +1954,7 @@ function initPlayer(){
 
   function loop(t){
     if(state!=='playing'){ return; }
+    if(quizActive){ lastT=t; acc=0; draw(); raf=requestAnimationFrame(loop); return; }  // 퀴즈 푸는 동안 블록 멈춤
     const g=G; const dt=t-lastT; lastT=t; acc+=dt; sendAcc+=dt;
     const iv = dropInterval(g);            // 중력은 항상 일정 (소프트 드롭은 버튼으로 따로 처리)
     while(acc>=iv){ softStep(g); acc-=iv; if(g.over) break; }
@@ -1787,6 +1995,8 @@ function initPlayer(){
     for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) if(g.letters[y][x]) drawGlyph(x,y,g.letters[y][x]);
     // 쌓인 블록 위의 아이템
     for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) if(g.items[y][x]) drawItem(x,y,g.items[y][x]);
+    // 쌓인 블록 위의 퀴즈칸
+    for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) if(g.quizmarks[y][x]) drawQuizMark(x,y);
     // 고스트 + 현재 조각
     if(g.cur){
       const ghost={...g.cur,r:g.cur.r}; while(!collide(g,{...ghost,r:ghost.r+1})) ghost.r++;
@@ -1800,8 +2010,23 @@ function initPlayer(){
       if(g.cur.lc){ const gx=g.cur.c+g.cur.lc.x, gy=g.cur.r+g.cur.lc.y; if(gy>=0) drawGlyph(gx,gy,g.cur.lc.ch); }
       // 현재 조각의 아이템
       if(g.cur.ic){ const gx=g.cur.c+g.cur.ic.x, gy=g.cur.r+g.cur.ic.y; if(gy>=0) drawItem(gx,gy,g.cur.ic.item); }
+      // 현재 조각의 퀴즈칸
+      if(g.cur.qc){ const gx=g.cur.c+g.cur.qc.x, gy=g.cur.r+g.cur.qc.y; if(gy>=0) drawQuizMark(gx,gy); }
     }
     drawNext();
+  }
+  function drawQuizMark(x,y){
+    itemGlow=(itemGlow+1)%1000;
+    const pulse=0.5+0.5*Math.abs(Math.sin(itemGlow*0.15));
+    bctx.save();
+    bctx.globalAlpha=1; bctx.fillStyle='#a78bfa';                 // 보라 배경
+    bctx.fillRect(x*CS+1, y*CS+1, CS-2, CS-2);
+    bctx.globalAlpha=pulse; bctx.strokeStyle='#fff'; bctx.lineWidth=2;
+    bctx.strokeRect(x*CS+2, y*CS+2, CS-4, CS-4);
+    bctx.restore();
+    bctx.font='900 '+Math.floor(CS*0.72)+'px sans-serif';
+    bctx.fillStyle='#fff'; bctx.textAlign='center'; bctx.textBaseline='middle';
+    bctx.fillText('?', x*CS+CS/2, y*CS+CS/2+1);
   }
   let itemGlow=0;
   function drawItem(x,y,item){
@@ -1856,7 +2081,7 @@ function initPlayer(){
   function clearRevive(){ if(reviveTimer){ clearTimeout(reviveTimer); reviveTimer=null; } }
   function endGame(){
     if(state!=='playing') return;
-    state='dead'; cancelAnimationFrame(raf); stopSoft(); sfx('over');
+    state='dead'; cancelAnimationFrame(raf); stopSoft(); sfx('over'); killQuiz();
     if(timeMode){
       timeBase += G.score;   // 누적 점수 은행에 저장
       sendState(); send({type:'topout', score:timeBase, lines:G.lines, atk:G.atkSent, combo:G.maxCombo, wbonus:G.wordBonus, cbonus:G.comboBonusTotal});
@@ -2027,7 +2252,7 @@ function initPlayer(){
   const KEY={ArrowLeft:'left',ArrowRight:'right',ArrowDown:'down',ArrowUp:'rotate',' ':'drop'};
   window.addEventListener('keydown', e=>{
     const k=KEY[e.key]; if(!k) return; e.preventDefault();
-    if(state!=='playing'||!G) return;
+    if(state!=='playing'||!G||quizActive) return;
     if(k==='down'){ startSoft(); return; }                    // 소프트 드롭
     if(pressed.has(k) && (k==='rotate'||k==='drop')) return;   // 회전/하드드롭은 연타 방지
     pressed.add(k);
