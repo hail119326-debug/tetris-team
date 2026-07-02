@@ -232,6 +232,12 @@ function handleMessage(ws, raw) {
     case 'attack':
       sendGarbage(ws, m.amount | 0);
       break;
+    case 'fog':              // 아이템: 안개 (개인전 랜덤 1명 / 팀전 랜덤 상대팀 전원)
+      sendFog(ws);
+      break;
+    case 'itematk':          // 아이템: 공격 (개인전 랜덤 1명 / 팀전 랜덤 상대팀 전원, 1줄)
+      sendItemAttack(ws, m.amount | 0);
+      break;
 
     /* ----- 교사(host) 전용 ----- */
     case 'createroom':
@@ -400,6 +406,59 @@ function sendGarbage(from, amount) {
   from.send(JSON.stringify({ type: 'attacked', amount, to: t.meta.name }));
   const fx = JSON.stringify({ type: 'attackfx', fromId: from.meta.id, toId: t.meta.id, amount, room: room.id });
   for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(fx);
+}
+function sendFog(from) {
+  const room = roomById(from.meta.room);
+  if (!room || room.phase !== 'playing') return;
+  const inRoom = playersIn(room.id);
+  let targets;
+  if (from.meta.team) {
+    // 팀전: 살아있는 상대 팀들 중 랜덤 한 팀 전원
+    const oppTeams = [...new Set(inRoom.filter(p => p.meta.alive && p.meta.team && p.meta.team !== from.meta.team).map(p => p.meta.team))];
+    if (!oppTeams.length) return;
+    const pick = oppTeams[(Math.random() * oppTeams.length) | 0];
+    targets = inRoom.filter(p => p.meta.alive && p.meta.team === pick);
+  } else {
+    // 개인전: 나 빼고 살아있는 학생 중 랜덤 1명
+    const others = inRoom.filter(p => p !== from && p.meta.alive);
+    if (!others.length) return;
+    targets = [others[(Math.random() * others.length) | 0]];
+  }
+  if (!targets || !targets.length) return;
+  const msg = JSON.stringify({ type: 'fogged', from: from.meta.name });
+  const names = [];
+  for (const t of targets) { t.send(msg); names.push(t.meta.name); }
+  from.send(JSON.stringify({ type: 'fogsent', to: (from.meta.team ? (names.length + '명') : (names[0] || '상대')) }));
+  const fx = JSON.stringify({ type: 'attackfx', fromId: from.meta.id, toId: targets[0].meta.id, amount: 0, fog: true, room: room.id });
+  for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(fx);
+}
+function sendItemAttack(from, amount) {
+  const room = roomById(from.meta.room);
+  if (!room || room.phase !== 'playing') return;
+  const n = Math.max(1, amount || 1);
+  const inRoom = playersIn(room.id);
+  let targets;
+  if (from.meta.team) {
+    // 팀전: 살아있는 상대 팀들 중 랜덤 한 팀 전원
+    const oppTeams = [...new Set(inRoom.filter(p => p.meta.alive && p.meta.team && p.meta.team !== from.meta.team).map(p => p.meta.team))];
+    if (!oppTeams.length) return;
+    const pick = oppTeams[(Math.random() * oppTeams.length) | 0];
+    targets = inRoom.filter(p => p.meta.alive && p.meta.team === pick);
+  } else {
+    // 개인전: 나 빼고 살아있는 학생 중 랜덤 1명
+    const others = inRoom.filter(p => p !== from && p.meta.alive);
+    if (!others.length) return;
+    targets = [others[(Math.random() * others.length) | 0]];
+  }
+  if (!targets || !targets.length) return;
+  const names = [];
+  for (const t of targets) {
+    t.send(JSON.stringify({ type: 'garbage', amount: n, from: from.meta.name }));
+    names.push(t.meta.name);
+    const fx = JSON.stringify({ type: 'attackfx', fromId: from.meta.id, toId: t.meta.id, amount: n, room: room.id });
+    for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(fx);
+  }
+  from.send(JSON.stringify({ type: 'attacked', amount: n, to: (from.meta.team ? (names.length + '명') : (names[0] || '상대')) }));
 }
 
 /* ---------- 팀 배정 (교사 권한, 방 단위) ---------- */
