@@ -678,6 +678,7 @@ const SFX={
   go:      ()=> { _tone(523,0.12,'square',0.26,0); _tone(784,0.2,'square',0.28,0.1); },          // 시작
   over:    ()=> { [440,392,330,262].forEach((f,i)=> _tone(f,0.2,'triangle',0.26,i*0.13)); },     // 게임오버 B
   win:     ()=> { const seq=[[523,0.15],[659,0.15],[784,0.15],[1047,0.3],[988,0.15],[1047,0.5]]; let t=0; seq.forEach(([f,d])=>{ _tone(f,d,'square',0.22,t); t+=d*0.85; }); }, // 우승 C
+  kw_done: ()=> { [659,880,1047,1319].forEach((f,i)=> _tone(f,0.16,'triangle',0.26,i*0.08)); },        // 단어 완성 팡파레
 };
 function sfx(n){ if(!SFX_ON) return; const f=SFX[n]; if(f){ try{ f(); }catch(e){} } }
 // 첫 사용자 입력(터치/클릭/키)에서 오디오 잠금 해제
@@ -1405,9 +1406,15 @@ function initPlayer(){
       kwDone[kwIdx] = true;
       G.score += 500; G.wordBonus = (G.wordBonus||0) + 500; updateStats(); sendState();    // 단어 완성 보너스
       showKwToast('🎉 ‘'+esc(word)+'’ 완성! +500', true);
+      try{ sfx('kw_done'); }catch(e){}                // 완성 팡파레
       pointToCurrent();                               // 다음 단어로
     } else {
-      showKwToast('✏️ ‘'+esc(ch)+'’ 획득', false);
+      // 진행도 계산 (몇 글자 모았나)
+      let have=0, total=0;
+      for(const c in curReq){ total+=curReq[c]; have+=Math.min(curHave[c]||0, curReq[c]); }
+      showKwToast('✏️ ‘'+esc(ch)+'’ 획득!  <span style="opacity:.8">('+have+'/'+total+')</span>', false);
+      // 모을수록 음이 높아지는 획득음 (성취감)
+      try{ const frac=total?have/total:0; if(typeof _tone==='function') _tone(660+Math.round(frac*500), 0.09, 'triangle', 0.24); }catch(e){}
     }
     renderWordList();
   }
