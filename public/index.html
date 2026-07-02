@@ -312,6 +312,16 @@
   /* 방어막 배지 */
   .shieldBadge{font-weight:900;font-size:15px;color:#0b0e1a;background:#38bdf8;border-radius:999px;padding:2px 12px}
   .shieldBadge:empty{display:none}
+  /* 역전! 배너 (학생·교사 공용) */
+  .reversalBanner{position:fixed;left:50%;top:16%;transform:translate(-50%,-20px);z-index:10000;
+    pointer-events:none;opacity:0;white-space:nowrap;
+    font-size:34px;font-weight:900;color:#fff;padding:14px 30px;border-radius:16px;
+    background:linear-gradient(90deg,#f59e0b,#ef4444);border:3px solid #fff;
+    box-shadow:0 12px 40px rgba(0,0,0,.5);text-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .reversalBanner b{color:#fff}
+  .reversalBanner.show{animation:revPop 2.2s ease}
+  @keyframes revPop{0%{opacity:0;transform:translate(-50%,-20px) scale(.7)}12%{opacity:1;transform:translate(-50%,0) scale(1.12)}22%{transform:translate(-50%,0) scale(1)}82%{opacity:1;transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-16px) scale(1)}}
+  @media(max-width:640px){ .reversalBanner{font-size:22px;padding:10px 18px} }
   /* 시작/종료 카운트다운(화면 가운데 큰 숫자, 플레이 가림 없음) */
   .bigCount{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:45}
   #bigCount{position:absolute}
@@ -616,6 +626,19 @@ const TEAM_PALETTE = [
   { id:'pink',   name:'핑크',   color:'#ec4899' },  // 마젠타 핑크(레드와 분리)
 ];
 const TEAM_BY_ID = Object.fromEntries(TEAM_PALETTE.map(t => [t.id, t]));
+function teamNameOf(id){ const t=TEAM_BY_ID[id]; return t?t.name:'상대'; }
+
+// "⚡ 역전!" 배너 (학생·교사 공용) — 시간모드 마지막 30초 순위 변동시
+function showReversal(m){
+  let el=document.getElementById('reversalBanner');
+  if(!el){ el=document.createElement('div'); el.id='reversalBanner'; el.className='reversalBanner'; document.body.appendChild(el); }
+  const rankTxt = m.rank===1?'1위':m.rank===2?'2위':m.rank+'위';
+  const who = m.team ? teamNameOf(m.teamId)+'팀' : (m.name||'상대');
+  el.innerHTML = '⚡ 역전! <b>'+ (typeof esc==='function'?esc(who):who) +'</b> '+rankTxt+'!';
+  el.className='reversalBanner show';
+  try{ if(typeof sfx==='function') sfx('tetris'); }catch(e){}
+  clearTimeout(showReversal._t); showReversal._t=setTimeout(()=>{ el.className='reversalBanner'; }, 2200);
+}
 
 /* ============== 효과음 (Web Audio, 파일 없음) ============== */
 let _actx=null;
@@ -983,6 +1006,7 @@ function initHost(){
       return;
     }
     if(m.type==='attackfx'){ if(!onWaitTab) flashAttack(m.fromId, m.toId, m.amount); return; }
+    if(m.type==='leadchange'){ showReversal(m); return; }
     if(m.type==='start'){ if(!onWaitTab) hostRunCount(5, false); return; }
     if(m.type==='endcountdown'){ if(!onWaitTab) hostRunCount(m.sec||5, true); return; }
   };
@@ -1231,6 +1255,7 @@ function initPlayer(){
     if(m.type==='garbage'){ if(G && state==='playing'){ const blocked=addGarbage(m.amount); if(!blocked){ showAtkToast('💥 '+esc(m.from||'상대')+'의 공격!  +'+m.amount+'줄', 'hit'); sfx('atk_hit'); flashHit(); } } addMyLog('🛡️ '+esc(m.from||'상대')+' → 나 '+m.amount+'줄','hit'); return; }
     if(m.type==='attacked'){ showAtkToast('⚡ '+esc(m.to||'상대')+' 공격 성공!  +'+m.amount+'줄', 'send'); sfx('atk_send'); flashSend(); addMyLog('⚔️ 나 → '+esc(m.to||'상대')+' '+m.amount+'줄','send'); return; }
     if(m.type==='fogged'){ if(G && state==='playing') showFog(); return; }
+    if(m.type==='leadchange'){ showReversal(m); return; }
     if(m.type==='fogsent'){ addMyLog('🤯 나 → '+esc(m.to||'상대')+' 안개','send'); return; }
     if(m.type==='gameover'){ hideBigCount(); clearRevive(); timeMode=false; onGameOver(m); return; }
     if(m.type==='endcountdown'){ runBigCount(m.sec||5, true); return; }
