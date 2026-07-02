@@ -163,6 +163,8 @@ let nextRoom = 1;
 const MAX_ROOMS = 15;
 const rooms = new Map(); // roomId -> { id, name, mode, phase, activeTeams, keywords, ending }
 let globalKeywords = [];  // 교사가 등록하면 모든 방에 적용 (새 방도 자동 상속)
+let globalQuiz = [];      // 퀴즈 문제 목록 (모든 방 공통)
+let globalQuizTimer = true;  // 문제 시간제한 on/off
 
 const players = () => [...clients].filter(c => c.meta.role === 'player');
 const hosts = () => [...clients].filter(c => c.meta.role === 'host');
@@ -286,6 +288,7 @@ function handleMessage(ws, raw) {
           if (r) {
             p.send(JSON.stringify({ type: 'roomset', room: r.id, name: r.name, mode: r.mode }));
             if (r.keywords.length) p.send(JSON.stringify({ type: 'keywords', words: r.keywords }));
+            if (globalQuiz.length) p.send(JSON.stringify({ type: 'quiz', questions: globalQuiz, timer: globalQuizTimer }));
             if (r.mode === 'team' && r.activeTeams.length) { p.meta.team = smallestActiveTeam(r, p); notifyTeam(p); }
             if (r.phase === 'playing') { p.meta.alive = true; p.send(JSON.stringify({ type: 'start' })); }
             else p.send(JSON.stringify({ type: 'reset' }));
@@ -348,6 +351,15 @@ function handleMessage(ws, raw) {
       break;
     case 'autoassign':
       { const r = targetRoom(ws, m); if (r) autoAssign(r, Array.isArray(m.teams) ? m.teams : []); }
+      break;
+    case 'setquiz':          // 교사: 퀴즈 문제 등록 (모든 방)
+      if (isHost(ws)) {
+        globalQuiz = Array.isArray(m.questions) ? m.questions.slice(0, 500) : [];
+        globalQuizTimer = m.timer !== false;
+        const qmsg = JSON.stringify({ type: 'quiz', questions: globalQuiz, timer: globalQuizTimer });
+        for (const p of players()) if (p.meta.room) p.send(qmsg);
+        for (const h of hosts()) h.send(JSON.stringify({ type: 'quizinfo', count: globalQuiz.length, timer: globalQuizTimer }));
+      }
       break;
     case 'setkeyword':
       {
