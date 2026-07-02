@@ -517,6 +517,33 @@ function sendRoomsList(ws) {
 }
 function broadcastRooms() { for (const h of hosts()) sendRoomsList(h); }
 
+// 역전 감지: 시간 모드 마지막 30초에 1·2·3등이 바뀌면 알림 (쿨다운 4초, 제일 높은 변동만)
+function checkLeadChange(room) {
+  if (room.gameType !== 'time' || room.phase !== 'playing' || !room.endsAt) return;
+  const ps = playersIn(room.id);
+  if (!ps.length) return;
+  let top;
+  if (room.mode === 'team') top = teamSummary(ps).filter(t => t.team).slice(0, 3).map(t => 'T:' + t.team);
+  else top = ps.slice().sort((a, b) => b.meta.score - a.meta.score).slice(0, 3).map(p => 'P:' + p.meta.id);
+  const prev = room._prevTop || [];
+  const remain = room.endsAt - Date.now();
+  if (remain > 0 && remain <= 30000 && prev.length) {
+    let changed = -1;
+    for (let i = 0; i < top.length; i++) { if (top[i] !== prev[i]) { changed = i; break; } }
+    if (changed >= 0 && Date.now() - (room._leadFx || 0) > 4000) {
+      room._leadFx = Date.now();
+      const key = top[changed];
+      let msg;
+      if (key.startsWith('T:')) msg = { type: 'leadchange', rank: changed + 1, team: true, teamId: key.slice(2) };
+      else { const pl = ps.find(p => p.meta.id === (+key.slice(2))); msg = { type: 'leadchange', rank: changed + 1, team: false, name: pl ? pl.meta.name : '?' }; }
+      const str = JSON.stringify(msg);
+      for (const p of ps) p.send(str);
+      for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(str);
+    }
+  }
+  room._prevTop = top;
+}
+
 setInterval(() => {
   const worlds = new Map();
   for (const r of rooms.values()) worlds.set(r.id, roomWorld(r));
@@ -538,6 +565,7 @@ setInterval(() => {
     if (ps.length === 0) continue;
     if (r.gameType === 'time') {
       // 시간 모드: 제한시간 끝나면 종료 (죽어도 부활하므로 인원으로 끝내지 않음)
+      checkLeadChange(r);   // 마지막 30초 역전 감지
       if (r.endsAt && Date.now() >= r.endsAt) finishGame(r);
       continue;
     }
