@@ -296,6 +296,22 @@
   @keyframes atkFlashAnim{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
   .boardWrap.shake{animation:atkShake .35s ease}
   @keyframes atkShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-2px)}60%{transform:translate(-3px,-1px)}80%{transform:translate(3px,1px)}}
+  /* 아이템 발동 토스트 (가운데 크게) */
+  .itemToast{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.6);
+    pointer-events:none;opacity:0;z-index:6;text-align:center;
+    font-size:20px;font-weight:900;color:#fff;background:rgba(20,24,40,.92);
+    border:2px solid var(--accent);border-radius:14px;padding:12px 18px;white-space:nowrap;
+    box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  .itemToast.show{animation:itemPop 1.8s ease}
+  @keyframes itemPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}15%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}30%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
+  /* 안개(내가 안개 맞았을 때) — 살짝만 흐리게 */
+  .fogOverlay{position:absolute;inset:0;pointer-events:none;border-radius:inherit;z-index:5;opacity:0;
+    backdrop-filter:blur(3px);background:rgba(120,130,150,.18);transition:opacity .25s}
+  .fogOverlay.show{opacity:1}
+  .fogOverlay::after{content:'🤯';position:absolute;top:8px;right:10px;font-size:22px;opacity:.9}
+  /* 방어막 배지 */
+  .shieldBadge{font-weight:900;font-size:15px;color:#0b0e1a;background:#38bdf8;border-radius:999px;padding:2px 12px}
+  .shieldBadge:empty{display:none}
   /* 시작/종료 카운트다운(화면 가운데 큰 숫자, 플레이 가림 없음) */
   .bigCount{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:45}
   #bigCount{position:absolute}
@@ -375,6 +391,7 @@
     <span class="me" id="meName">-</span>
     <span class="roomTag" id="meRoom"></span>
     <span class="teamTag" id="meTeam"></span>
+    <span class="shieldBadge" id="shieldBadge"></span>
     <span class="timeLeft" id="timeLeft"></span>
     <span class="rank" id="meRank"></span>
   </div>
@@ -412,6 +429,8 @@
         <div class="boardWrap">
           <canvas id="board" width="200" height="400"></canvas>
           <div id="atkFlash" class="atkFlash"></div>
+          <div id="fogOverlay" class="fogOverlay"></div>
+          <div id="itemToast" class="itemToast"></div>
           <div id="kwToast" class="kwToast"></div>
           <div id="atkToast" class="atkToast"></div>
           <div id="bigCount" class="bigCount hidden"><span id="bigCountNum"></span></div>
@@ -1209,8 +1228,10 @@ function initPlayer(){
     if(m.type==='start'){ timeMode=(m.gameType==='time'); timeBase=0; timeEndsAt=m.endsAt||0; clearRevive(); startCountdown(); return; }
     if(m.type==='reset'){ hideBigCount(); backToRoomLobby(); return; }
     if(m.type==='team'){ setMyTeam(m.team); return; }
-    if(m.type==='garbage'){ if(G && state==='playing'){ addGarbage(m.amount); showAtkToast('🛡️ '+esc(m.from||'상대')+'의 공격!  +'+m.amount+'줄', 'hit'); sfx('atk_hit'); flashHit(); } addMyLog('🛡️ '+esc(m.from||'상대')+' → 나 '+m.amount+'줄','hit'); return; }
+    if(m.type==='garbage'){ if(G && state==='playing'){ const blocked=addGarbage(m.amount); if(!blocked){ showAtkToast('💥 '+esc(m.from||'상대')+'의 공격!  +'+m.amount+'줄', 'hit'); sfx('atk_hit'); flashHit(); } } addMyLog('🛡️ '+esc(m.from||'상대')+' → 나 '+m.amount+'줄','hit'); return; }
     if(m.type==='attacked'){ showAtkToast('⚡ '+esc(m.to||'상대')+' 공격 성공!  +'+m.amount+'줄', 'send'); sfx('atk_send'); flashSend(); addMyLog('⚔️ 나 → '+esc(m.to||'상대')+' '+m.amount+'줄','send'); return; }
+    if(m.type==='fogged'){ if(G && state==='playing') showFog(); return; }
+    if(m.type==='fogsent'){ addMyLog('🤯 나 → '+esc(m.to||'상대')+' 안개','send'); return; }
     if(m.type==='gameover'){ hideBigCount(); clearRevive(); timeMode=false; onGameOver(m); return; }
     if(m.type==='endcountdown'){ runBigCount(m.sec||5, true); return; }
     if(m.type==='world'){ if(!myRoom) return; roomMode=m.mode; roomPhase=m.phase; amLeader=(m.leaderId===myId); if(m.gameType) timeMode=(m.gameType==='time'); if(m.endsAt) timeEndsAt=m.endsAt; updateLeaderBar(); onWorld(m); return; }
@@ -1487,13 +1508,25 @@ function initPlayer(){
     Z:[[1,1,0],[0,1,1],[0,0,0]],
   };
   const TYPES=['I','J','L','O','S','T','Z'];
+  // 아이템 5종 (블록칸에 붙어 나옴, 그 칸 든 줄 지우면 발동)
+  const ITEMS = {
+    clean:  {emoji:'🧹', label:'청소'},
+    atk:    {emoji:'⚔️', label:'공격'},
+    bonus:  {emoji:'🎁', label:'보너스'},
+    shield: {emoji:'🛡️', label:'방어막'},
+    fog:    {emoji:'🤯', label:'안개'},
+  };
+  const ITEM_KEYS = ['clean','atk','bonus','shield','fog'];
+  const ITEM_CHANCE = 0.10;   // 블록에 아이템 붙을 확률
 
   function newGame(){
     return {
       grid: Array.from({length:ROWS},()=>Array(COLS).fill(0)),
       letters: Array.from({length:ROWS},()=>Array(COLS).fill(null)),   // 칸별 글자
+      items: Array.from({length:ROWS},()=>Array(COLS).fill(null)),     // 칸별 아이템
       cur:null, queue:[], bag:[], score:0, lines:0, level:1, down:false, over:false, combo:-1,
       atkSent:0, maxCombo:0, wordBonus:0, comboBonusTotal:0,   // 통계: 공격줄, 최대콤보, 단어보너스, 콤보보너스
+      shield:false,   // 방어막(다음 공격 1번 막기)
     };
   }
   function bagNext(g){
@@ -1506,13 +1539,20 @@ function initPlayer(){
     const type = g.queue.shift();
     ensureQueue(g);
     const mat = SHAPES[type].map(r=>r.slice());
-    const piece = { type, mat, r:0, c:((COLS - mat[0].length)>>1), lc:null };
-    // 키워드(현재 단어)가 있으면 절반 확률로 한 칸에 글자 부착
-    if(kwIdx>=0 && Math.random() < 0.5){
+    const piece = { type, mat, r:0, c:((COLS - mat[0].length)>>1), lc:null, ic:null };
+    // 채워진 칸 목록
+    const cells=[];
+    for(let y=0;y<mat.length;y++) for(let x=0;x<mat[y].length;x++) if(mat[y][x]) cells.push({x,y});
+    // 아이템(10%) 우선, 아니면 키워드 글자(50%)
+    let placedItem=false;
+    if(cells.length && Math.random() < ITEM_CHANCE){
+      const cell = cells[(Math.random()*cells.length)|0];
+      piece.ic = { x:cell.x, y:cell.y, item: ITEM_KEYS[(Math.random()*ITEM_KEYS.length)|0] };
+      placedItem=true;
+    }
+    if(!placedItem && kwIdx>=0 && Math.random() < 0.5){
       const ch = pickLetter();
       if(ch){
-        const cells=[];
-        for(let y=0;y<mat.length;y++) for(let x=0;x<mat[y].length;x++) if(mat[y][x]) cells.push({x,y});
         const cell = cells[(Math.random()*cells.length)|0];
         piece.lc = { x:cell.x, y:cell.y, ch };
       }
@@ -1536,17 +1576,19 @@ function initPlayer(){
     return out;
   }
   function tryRotate(g){
-    const p=g.cur, old=p.mat, oldLc=p.lc, n=p.mat.length;
+    const p=g.cur, old=p.mat, oldLc=p.lc, oldIc=p.ic, n=p.mat.length;
     p.mat = rotateCW(p.mat);
     if(p.lc) p.lc = { x:n-1-p.lc.y, y:p.lc.x, ch:p.lc.ch };   // 글자 칸도 같이 회전
+    if(p.ic) p.ic = { x:n-1-p.ic.y, y:p.ic.x, item:p.ic.item }; // 아이템 칸도 회전
     for(const dx of [0,-1,1,-2,2]){ p.c+=dx; if(!collide(g,p)){ sfx('rotate'); return; } p.c-=dx; }
-    p.mat = old; p.lc = oldLc; // 실패 시 원복
+    p.mat = old; p.lc = oldLc; p.ic = oldIc; // 실패 시 원복
   }
   function lock(g){
     const p=g.cur, t=TI[p.type];
     for(let y=0;y<p.mat.length;y++) for(let x=0;x<p.mat[y].length;x++){
       if(p.mat[y][x]){ const gy=p.r+y, gx=p.c+x; if(gy>=0){ g.grid[gy][gx]=t;
-        if(p.lc && p.lc.x===x && p.lc.y===y) g.letters[gy][gx]=p.lc.ch; } }
+        if(p.lc && p.lc.x===x && p.lc.y===y) g.letters[gy][gx]=p.lc.ch;
+        if(p.ic && p.ic.x===x && p.ic.y===y) g.items[gy][gx]=p.ic.item; } }
     }
     g.down=false;          // 조각이 놓이면 소프트 드롭 해제 → 다음 조각은 정상 속도
     sfx('lock');
@@ -1554,12 +1596,14 @@ function initPlayer(){
     spawn(g);
   }
   function clearLines(g){
-    let cleared=0;
+    let cleared=0; const gotItems=[];
     for(let y=ROWS-1;y>=0;y--){
       if(g.grid[y].every(v=>v!==0)){
         for(let x=0;x<COLS;x++){ const ch=g.letters[y][x]; if(ch) collectLetter(ch); }  // 글자 수집
+        for(let x=0;x<COLS;x++){ const it=g.items[y][x]; if(it) gotItems.push(it); }      // 아이템 수집
         g.grid.splice(y,1); g.grid.unshift(Array(COLS).fill(0));
         g.letters.splice(y,1); g.letters.unshift(Array(COLS).fill(null));
+        g.items.splice(y,1); g.items.unshift(Array(COLS).fill(null));
         cleared++; y++;
       }
     }
@@ -1578,23 +1622,56 @@ function initPlayer(){
       if(cleared===4){ showLineFx('TETRIS! +'+(base+comboBonus), 'tetris'); sfx('tetris'); }
       else if(g.combo>=1){ if(g.combo>0) showLineFx(g.combo+' COMBO! +'+(base+comboBonus), 'combo'); else if(cleared>=2) showLineFx('+'+base, 'line'); sfx(g.combo>=3?'combo3':g.combo>=2?'combo2':'combo1'); }
       else { if(cleared>=2) showLineFx('+'+base, 'line'); sfx('clear'); }
+      for(const it of gotItems) fireItem(it);    // 수집한 아이템 발동
     } else {
       g.combo=-1;                              // 줄 못 지움 → 콤보 끊김
     }
   }
   function addGarbage(n){
     const g=G;
+    // 방어막이 있으면 이번 공격 1번 막기
+    if(g.shield){ g.shield=false; showItemToast('🛡️ 방어막이 공격을 막았어요!'); sfx('atk_send'); updateShieldBadge(); return true; }
     // 위쪽 n줄에 블록이 있으면 밀려서 탈락
     for(let y=0;y<n;y++) if(g.grid[y].some(v=>v!==0)){ g.over=true; }
     for(let i=0;i<n;i++){
-      g.grid.shift(); g.letters.shift();
+      g.grid.shift(); g.letters.shift(); g.items.shift();
       const row=Array(COLS).fill(8);
       row[(Math.random()*COLS)|0]=0;          // 구멍 하나
-      g.grid.push(row); g.letters.push(Array(COLS).fill(null));
+      g.grid.push(row); g.letters.push(Array(COLS).fill(null)); g.items.push(Array(COLS).fill(null));
     }
     if(g.cur){ while(collide(g,g.cur)){ g.cur.r--; if(g.cur.r<-3){ g.over=true; break; } } }
     if(g.over) endGame();
   }
+  function cleanBottom(n){   // 아래 n줄 삭제 (위에 빈 줄 추가 → 스택이 내려옴)
+    const g=G;
+    for(let i=0;i<n;i++){
+      g.grid.pop(); g.letters.pop(); g.items.pop();
+      g.grid.unshift(Array(COLS).fill(0)); g.letters.unshift(Array(COLS).fill(null)); g.items.unshift(Array(COLS).fill(null));
+    }
+  }
+  function fireItem(item){
+    const g=G; if(!g) return;
+    if(item==='clean'){ cleanBottom(2); showItemToast('🧹 청소!  아래 2줄 삭제'); sfx('clear'); }
+    else if(item==='atk'){ send({type:'itematk', amount:1}); showItemToast('⚔️ 공격!  상대에게 +1줄'); sfx('atk_send'); flashSend(); }
+    else if(item==='bonus'){ g.score+=500; showItemToast('🎁 보너스!  +500점'); sfx('combo2'); }
+    else if(item==='shield'){ g.shield=true; updateShieldBadge(); showItemToast('🛡️ 방어막!  다음 공격 1번 막기'); sfx('combo1'); }
+    else if(item==='fog'){ send({type:'fog'}); showItemToast('🤯 안개!  상대 화면 흐리기'); sfx('atk_send'); }
+  }
+  let itemToastTimer=null;
+  function showItemToast(html){
+    const el=document.getElementById('itemToast'); if(!el) return;
+    el.innerHTML=html; el.className='itemToast'; void el.offsetWidth; el.className='itemToast show';
+    clearTimeout(itemToastTimer); itemToastTimer=setTimeout(()=>{ el.className='itemToast'; }, 1800);
+  }
+  function updateShieldBadge(){ const el=document.getElementById('shieldBadge'); if(el) el.textContent = (G && G.shield) ? '🛡️ 방어막' : ''; }
+  let fogTimer=null;
+  function showFog(){
+    const el=document.getElementById('fogOverlay'); if(!el) return;
+    el.classList.add('show'); showItemToast('🤯 안개!  잠깐 흐려져요');
+    clearTimeout(fogTimer); fogTimer=setTimeout(()=>{ el.classList.remove('show'); }, 3000);
+  }
+  function clearFog(){ const el=document.getElementById('fogOverlay'); if(el) el.classList.remove('show'); clearTimeout(fogTimer); }
+
   function hardDrop(g){
     let d=0; while(!collide(g,{...g.cur,r:g.cur.r+1})){ g.cur.r++; d++; }
     g.score+=d*2; lock(g);
@@ -1629,6 +1706,7 @@ function initPlayer(){
     document.getElementById('lines').textContent=0;
     document.getElementById('level').textContent=1;
     lastT=performance.now(); acc=0; sendAcc=0;
+    clearFog(); updateShieldBadge();   // 아이템 상태 초기화
     cancelAnimationFrame(raf); raf=requestAnimationFrame(loop);
     updateLeaderBar();   // 시작 직후 방장 ±시간 바 갱신
   }
@@ -1674,6 +1752,8 @@ function initPlayer(){
     for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) drawCell(bctx,x,y,g.grid[y][x],CS);
     // 쌓인 블록 위의 글자
     for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) if(g.letters[y][x]) drawGlyph(x,y,g.letters[y][x]);
+    // 쌓인 블록 위의 아이템
+    for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) if(g.items[y][x]) drawItem(x,y,g.items[y][x]);
     // 고스트 + 현재 조각
     if(g.cur){
       const ghost={...g.cur,r:g.cur.r}; while(!collide(g,{...ghost,r:ghost.r+1})) ghost.r++;
@@ -1685,8 +1765,26 @@ function initPlayer(){
         if(g.cur.mat[y][x]) drawCell(bctx,g.cur.c+x,g.cur.r+y,TI[g.cur.type],CS);
       // 현재 조각의 글자
       if(g.cur.lc){ const gx=g.cur.c+g.cur.lc.x, gy=g.cur.r+g.cur.lc.y; if(gy>=0) drawGlyph(gx,gy,g.cur.lc.ch); }
+      // 현재 조각의 아이템
+      if(g.cur.ic){ const gx=g.cur.c+g.cur.ic.x, gy=g.cur.r+g.cur.ic.y; if(gy>=0) drawItem(gx,gy,g.cur.ic.item); }
     }
     drawNext();
+  }
+  let itemGlow=0;
+  function drawItem(x,y,item){
+    const def=ITEMS[item]; if(!def) return;
+    itemGlow=(itemGlow+1)%1000;
+    const pulse=0.6+0.4*Math.abs(Math.sin(itemGlow*0.15));
+    // 반짝이는 배경
+    bctx.save();
+    bctx.globalAlpha=pulse*0.5;
+    bctx.fillStyle='#fff';
+    bctx.fillRect(x*CS+1, y*CS+1, CS-2, CS-2);
+    bctx.restore();
+    // 이모지
+    bctx.font = Math.floor(CS*0.68) + 'px sans-serif';
+    bctx.textAlign='center'; bctx.textBaseline='middle';
+    bctx.fillText(def.emoji, x*CS+CS/2, y*CS+CS/2+1);
   }
   function drawGlyph(x,y,ch){
     bctx.fillStyle='rgba(0,0,0,.85)';
