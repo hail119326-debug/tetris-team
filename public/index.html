@@ -210,7 +210,7 @@
   .lrow .pos{width:26px;text-align:center;font-weight:900;color:var(--text)}
   .lrow .nm{flex:1;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .lrow .sc{font-weight:900;font-variant-numeric:tabular-nums}
-  .lrow.dead{opacity:.45}
+  .lrow.dead{opacity:.6}
   #grid{flex:1;overflow:auto;display:grid;gap:12px;align-content:start;
     grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
   .pcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:6px;align-items:center;position:relative}
@@ -224,7 +224,7 @@
     font-size:14px;padding:2px 8px;border-radius:999px;z-index:3;animation:fxBadge .8s ease forwards}
   @keyframes fxBadge{0%{opacity:0;transform:translateY(6px) scale(.8)}
     20%{opacity:1;transform:translateY(0) scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
-  .pcard.dead{opacity:.4;filter:grayscale(.6)}
+  .pcard.dead{opacity:.55;filter:grayscale(.4)}
   .pcard canvas{background:#070a14;border-radius:8px;width:100%}
   .pcard .pn{font-weight:800;font-size:13px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .pcard .ps{font-size:12px;color:var(--accent);font-weight:800;font-variant-numeric:tabular-nums}
@@ -1115,9 +1115,10 @@ function initHost(){
       }).join('');
     } else { tb.style.display='none'; }
 
-    // 순위표
+    // 순위표 (게임 중일 때만 탈락자 흐리게)
+    const dimDead = (m.phase==='playing');
     lbList.innerHTML = m.players.map((p,i)=>`
-      <div class="lrow ${p.alive?'':'dead'}">
+      <div class="lrow ${(dimDead && !p.alive)?'dead':''}">
         <div class="pos">${i+1}</div>
         <div class="nm">${esc(p.name)}</div>
         <div class="sc">${p.score}</div>
@@ -1148,7 +1149,7 @@ function initHost(){
         el.onclick = (e)=> openHostMenu(e, +el.dataset.pid); // 클릭 → 방장/팀/방이동 메뉴
         c = {el, canvas:cv, pn, pt, ps}; cards.set(p.id, c);
       }
-      c.el.className = 'pcard' + (p.alive?'':' dead');
+      c.el.className = 'pcard' + ((dimDead && !p.alive)?' dead':'');
       c.el.dataset.team = p.team || '';
       styleCard(c.el, c.pt, p.team || '');
       c.pn.textContent = p.name;
@@ -1951,7 +1952,7 @@ function initPlayer(){
         el.append(cv,nm,ot); grid.appendChild(el);
         c = {el, canvas:cv, nm, ot}; oppCards.set(p.id, c);
       }
-      c.el.className = 'opp' + (p.alive?'':' dead');
+      c.el.className = 'opp' + ((m.phase==='playing' && !p.alive)?' dead':'');
       const ti = TEAM_BY_ID[p.team];
       c.canvas.style.borderColor = ti ? ti.color : 'var(--line)';
       c.canvas.style.borderWidth = ti ? '3px' : '2px';
