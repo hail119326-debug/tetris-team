@@ -346,10 +346,41 @@
   .shieldBadge{font-weight:900;font-size:15px;color:#0b0e1a;background:#38bdf8;border-radius:999px;padding:2px 12px}
   .shieldBadge:empty{display:none}
   .shieldBadge.mirrorB{background:#c084fc}
-  .quizHelp{font-size:12px;color:var(--muted);line-height:1.7;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
-  .quizHelp code{color:var(--accent);font-size:11.5px;background:rgba(110,231,255,.08);padding:1px 5px;border-radius:4px;font-family:ui-monospace,monospace}
   .quizTimerToggle{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px;color:var(--text);cursor:pointer}
   .quizTimerToggle input{width:18px;height:18px;cursor:pointer}
+  /* 퀴즈 문제 만들기 폼 */
+  .qbTypeRow{display:flex;gap:6px;margin-bottom:10px}
+  .qbType{flex:1;padding:10px;border-radius:10px;border:2px solid var(--line);background:var(--panel2);color:var(--text);font-weight:800;font-size:14px;cursor:pointer}
+  .qbType.on{border-color:var(--accent);background:rgba(110,231,255,.14);color:#fff}
+  .qbForm{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .qbLab{font-size:12px;font-weight:800;color:var(--muted);margin:8px 0 5px}
+  .qbLab:first-child{margin-top:0}
+  .qbIn{width:100%;background:#0c1122;border:2px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--text);font-size:14px;font-weight:600;outline:none}
+  .qbIn:focus{border-color:var(--accent)}
+  .qbOxPick{display:flex;gap:8px}
+  .qbOx{flex:1;padding:12px;border-radius:10px;border:2px solid var(--line);background:var(--panel);color:var(--text);font-weight:900;font-size:15px;cursor:pointer}
+  .qbOx.o.sel{border-color:#34d399;background:rgba(52,211,153,.16);color:#6ee7b7}
+  .qbOx.x.sel{border-color:#fb7185;background:rgba(251,113,133,.16);color:#fda4af}
+  .qbOptRow{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .qbOptRow .n{width:20px;height:20px;flex:0 0 20px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:11px;color:#0b0e1a;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+  .qbOptRow .qbIn{flex:1}
+  .qbAnsBtn{flex:0 0 auto;padding:7px 10px;border-radius:8px;border:2px solid var(--line);background:var(--panel);color:var(--muted);font-weight:800;font-size:12px;cursor:pointer;white-space:nowrap}
+  .qbAnsBtn.on{border-color:#34d399;background:rgba(52,211,153,.18);color:#6ee7b7}
+  .qbDel{flex:0 0 auto;width:28px;height:28px;border-radius:7px;border:1px solid var(--line);background:var(--panel);color:var(--bad);font-weight:900;cursor:pointer}
+  .qbMini{background:var(--panel);border:1px dashed var(--line);color:var(--accent);border-radius:8px;padding:7px 11px;font-weight:800;font-size:12px;cursor:pointer;margin-top:2px}
+  .qbSubAns{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .qbSubAns .qbIn{flex:1;min-width:100px}
+  .qbAdd{margin-top:12px;width:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#0b0e1a;border:none;border-radius:10px;padding:11px;font-size:15px;font-weight:900;cursor:pointer}
+  .qbList{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto}
+  .qbItem{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+  .qbItem .tag{flex:0 0 auto;font-size:10px;font-weight:900;padding:2px 7px;border-radius:5px;color:#0b0e1a}
+  .qbItem .tag.ox{background:#34d399} .qbItem .tag.mc{background:#6ee7ff} .qbItem .tag.sa{background:#facc15}
+  .qbItem .qq{flex:1;font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+  .qbItem .aa{flex:0 0 auto;color:var(--muted);font-size:11px;font-weight:700;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .qbItem .ed{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--accent);border-radius:6px;padding:4px 8px;font-weight:800;font-size:11px;cursor:pointer}
+  .qbItem .dl{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--bad);border-radius:6px;padding:4px 8px;font-weight:800;font-size:11px;cursor:pointer}
+  .qbItem.editing{border-color:var(--accent)}
+  .qbEmpty{color:var(--muted);font-size:12px;padding:8px;text-align:center}
   /* 역전! 배너 (학생·교사 공용) */
   .reversalBanner{position:fixed;left:50%;top:16%;transform:translate(-50%,-20px);z-index:10000;
     pointer-events:none;opacity:0;white-space:nowrap;
@@ -583,23 +614,51 @@
       <span class="pill" id="kwNow" style="color:var(--muted)">등록된 키워드 없음</span>
     </div>
     <div class="teamCtl" style="border-top:1px solid var(--line);padding-top:12px;margin-top:4px">
-      <span class="pill">❓ 퀴즈 문제 <span style="color:var(--muted);font-weight:700">(모든 방 · 한 줄에 하나)</span></span>
-      <div class="quizHelp">
-        <b>형식</b> (앞에 종류 표시):<br>
-        <code>[OX] 광합성은 낮에 일어난다 | O</code><br>
-        <code>[객] 광합성 장소는? | 잎 | 뿌리 | 줄기 | 정답:1</code><br>
-        <code>[주] 물의 화학식은? | H2O / 물</code>
+      <span class="pill">❓ 퀴즈 문제 만들기 <span style="color:var(--muted);font-weight:700">(종류 고르고 빈칸 채우기)</span></span>
+      <!-- 종류 선택 -->
+      <div class="qbTypeRow">
+        <button class="qbType" data-t="ox">O / X</button>
+        <button class="qbType on" data-t="mc">객관식</button>
+        <button class="qbType" data-t="sa">주관식</button>
       </div>
-      <textarea id="hQuiz" rows="5" placeholder="[OX] 지구는 둥글다 | O&#10;[객] 가장 큰 행성은? | 목성 | 지구 | 화성 | 정답:1&#10;[주] 물의 화학식은? | H2O / 물"></textarea>
+      <!-- 문제 입력 폼 -->
+      <div class="qbForm">
+        <div class="qbLab">문제</div>
+        <input class="qbIn" id="qbQ" placeholder="문제를 입력하세요">
+        <!-- O/X -->
+        <div id="qbOxBox" class="hidden">
+          <div class="qbLab">정답</div>
+          <div class="qbOxPick">
+            <button class="qbOx o" id="qbOxO" data-a="O">⭕ 맞다 (O)</button>
+            <button class="qbOx x" id="qbOxX" data-a="X">❌ 아니다 (X)</button>
+          </div>
+        </div>
+        <!-- 객관식 -->
+        <div id="qbMcBox">
+          <div class="qbLab">보기 (정답인 보기의 '정답' 버튼을 누르세요)</div>
+          <div id="qbOpts"></div>
+          <button class="qbMini" id="qbAddOpt">+ 보기 추가</button>
+        </div>
+        <!-- 주관식 -->
+        <div id="qbSaBox" class="hidden">
+          <div class="qbLab">정답 (여러 개 가능 — 하나만 맞아도 정답)</div>
+          <div id="qbAns" class="qbSubAns"></div>
+          <button class="qbMini" id="qbAddAns">+ 정답 추가</button>
+        </div>
+        <button class="qbAdd" id="qbAddQ">＋ 이 문제 추가</button>
+      </div>
+      <!-- 등록된 문제 목록 -->
+      <div class="qbLab" style="margin-top:12px">등록된 문제 <span id="qbCount" style="color:var(--accent)">(0개)</span></div>
+      <div id="qbList" class="qbList"></div>
       <label class="quizTimerToggle"><input type="checkbox" id="hQuizTimer" checked> 문제 시간제한 켜기 <span style="color:var(--muted);font-weight:700">(O/X 10초·객관식 15초·주관식 20초)</span></label>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="hbtn assign" id="hSetQuiz">문제 등록</button>
+        <button class="hbtn assign" id="hSetQuiz">✅ 게임에 적용</button>
         <button class="hbtn settings" id="hExportQuiz">💾 내보내기</button>
         <button class="hbtn settings" id="hImportQuiz">📂 불러오기</button>
-        <button class="hbtn reset" id="hClearQuiz">지우기</button>
+        <button class="hbtn reset" id="hClearQuiz">전체 지우기</button>
       </div>
       <input type="file" id="hQuizFile" accept=".txt,.json" style="display:none">
-      <span class="pill" id="quizNow" style="color:var(--muted)">등록된 문제 없음</span>
+      <span class="pill" id="quizNow" style="color:var(--muted)">아직 적용 안 됨</span>
     </div>
   </div>
   <!-- 방 탭 (➕ 만들기 / 각 방 / 대기실) -->
@@ -971,8 +1030,8 @@ function initHost(){
   document.getElementById('hClearKw').onclick = ()=>{ kwInput.value=''; send({type:'setkeyword', words:[]}); hostToast('키워드 지움 (모든 방)'); };
 
   /* ===== 퀴즈 문제 등록 / 내보내기 / 불러오기 ===== */
-  const quizInput = document.getElementById('hQuiz');
   function normAns(s){ return String(s||'').replace(/\s+/g,'').toLowerCase(); }
+  // 텍스트 형식 파서 (불러오기 호환용)
   function parseQuiz(text){
     const out=[]; const bad=[];
     text.split('\n').map(s=>s.trim()).filter(Boolean).forEach(line=>{
@@ -994,30 +1053,143 @@ function initHost(){
     });
     return {out, bad};
   }
-  function registerQuiz(){
-    const {out, bad} = parseQuiz(quizInput.value);
-    const timer = document.getElementById('hQuizTimer').checked;
-    send({type:'setquiz', questions:out, timer});
-    let msg = '문제 '+out.length+'개 등록';
-    if(bad.length) msg += ' · 형식오류 '+bad.length+'줄 무시';
-    hostToast(msg);
+  // 문제 객체 → 텍스트 한 줄 (내보내기용)
+  function quizToLine(qq){
+    if(qq.t==='ox') return '[OX] '+qq.q+' | '+qq.a;
+    if(qq.t==='mc') return '[객] '+qq.q+' | '+qq.opts.join(' | ')+' | 정답:'+(qq.a+1);
+    return '[주] '+qq.q+' | '+qq.a.join(' / ');
   }
-  document.getElementById('hSetQuiz').onclick = registerQuiz;
-  document.getElementById('hClearQuiz').onclick = ()=>{ quizInput.value=''; send({type:'setquiz', questions:[], timer:document.getElementById('hQuizTimer').checked}); hostToast('문제 지움'); };
+  function quizAnsText(qq){
+    if(qq.t==='ox') return qq.a;
+    if(qq.t==='mc') return qq.opts[qq.a]||'';
+    return qq.a.join('/');
+  }
+
+  /* ===== 문제 만들기 폼 ===== */
+  let quizQuestions = [];     // 만든 문제 목록
+  let qbCurType = 'mc';       // 현재 선택된 종류
+  let qbOxAns = '';           // O/X 선택값
+  let qbEditIdx = -1;         // 수정 중인 문제 index (-1=새로)
+
+  function qbShowType(t){
+    qbCurType=t;
+    document.querySelectorAll('.qbType').forEach(b=> b.classList.toggle('on', b.dataset.t===t));
+    document.getElementById('qbOxBox').classList.toggle('hidden', t!=='ox');
+    document.getElementById('qbMcBox').classList.toggle('hidden', t!=='mc');
+    document.getElementById('qbSaBox').classList.toggle('hidden', t!=='sa');
+  }
+  document.querySelectorAll('.qbType').forEach(b=> b.onclick=()=>{ qbShowType(b.dataset.t); });
+  // O/X 정답 선택
+  document.getElementById('qbOxO').onclick=()=>{ qbOxAns='O'; document.getElementById('qbOxO').classList.add('sel'); document.getElementById('qbOxX').classList.remove('sel'); };
+  document.getElementById('qbOxX').onclick=()=>{ qbOxAns='X'; document.getElementById('qbOxX').classList.add('sel'); document.getElementById('qbOxO').classList.remove('sel'); };
+  // 객관식 보기 행 추가
+  function addOptRow(val){
+    const box=document.getElementById('qbOpts');
+    if(box.children.length>=5) return;
+    const row=document.createElement('div'); row.className='qbOptRow';
+    const n=document.createElement('span'); n.className='n';
+    const inp=document.createElement('input'); inp.className='qbIn'; inp.placeholder='보기'; if(val) inp.value=val;
+    const ans=document.createElement('button'); ans.className='qbAnsBtn'; ans.textContent='정답'; ans.type='button';
+    ans.onclick=()=>{ [...box.querySelectorAll('.qbAnsBtn')].forEach(b=>{ b.classList.remove('on'); b.textContent='정답'; }); ans.classList.add('on'); ans.textContent='✔ 정답'; };
+    const del=document.createElement('button'); del.className='qbDel'; del.textContent='×'; del.type='button';
+    del.onclick=()=>{ row.remove(); renumberOpts(); };
+    row.append(n,inp,ans,del); box.appendChild(row); renumberOpts();
+  }
+  function renumberOpts(){ [...document.getElementById('qbOpts').children].forEach((r,i)=> r.querySelector('.n').textContent=(i+1)); }
+  document.getElementById('qbAddOpt').onclick=()=> addOptRow();
+  // 주관식 정답 입력 추가
+  function addAnsInput(val){
+    const box=document.getElementById('qbAns');
+    if(box.querySelectorAll('.qbIn').length>=5) return;
+    if(box.children.length){ const or=document.createElement('span'); or.className='orTag'; or.style.cssText='color:var(--muted);font-weight:800;font-size:12px'; or.textContent='또는'; box.appendChild(or); }
+    const inp=document.createElement('input'); inp.className='qbIn'; inp.placeholder='정답'; if(val) inp.value=val; box.appendChild(inp);
+  }
+  document.getElementById('qbAddAns').onclick=()=> addAnsInput();
+
+  function qbResetForm(){
+    document.getElementById('qbQ').value='';
+    qbOxAns=''; document.getElementById('qbOxO').classList.remove('sel'); document.getElementById('qbOxX').classList.remove('sel');
+    document.getElementById('qbOpts').innerHTML=''; addOptRow(); addOptRow();  // 기본 보기 2개
+    document.getElementById('qbAns').innerHTML=''; addAnsInput();               // 기본 정답칸 1개
+    qbEditIdx=-1;
+    document.getElementById('qbAddQ').textContent='＋ 이 문제 추가';
+  }
+  // 폼 → 문제 객체
+  function qbBuild(){
+    const q=document.getElementById('qbQ').value.trim();
+    if(!q){ hostToast('문제를 입력하세요'); return null; }
+    if(qbCurType==='ox'){
+      if(!qbOxAns){ hostToast('정답(O/X)을 선택하세요'); return null; }
+      return {t:'ox', q, a:qbOxAns};
+    }
+    if(qbCurType==='mc'){
+      const rows=[...document.getElementById('qbOpts').children];
+      const opts=[]; let ai=-1;
+      rows.forEach((r,i)=>{ const v=r.querySelector('.qbIn').value.trim(); if(v){ if(r.querySelector('.qbAnsBtn').classList.contains('on')) ai=opts.length; opts.push(v); } });
+      if(opts.length<2){ hostToast('보기를 2개 이상 입력하세요'); return null; }
+      if(ai<0){ hostToast("정답인 보기의 '정답' 버튼을 누르세요"); return null; }
+      return {t:'mc', q, opts, a:ai};
+    }
+    // sa
+    const ans=[...document.getElementById('qbAns').querySelectorAll('.qbIn')].map(i=>normAns(i.value)).filter(Boolean);
+    if(!ans.length){ hostToast('정답을 입력하세요'); return null; }
+    return {t:'sa', q, a:ans};
+  }
+  document.getElementById('qbAddQ').onclick=()=>{
+    const obj=qbBuild(); if(!obj) return;
+    if(qbEditIdx>=0){ quizQuestions[qbEditIdx]=obj; hostToast('문제 수정됨'); }
+    else { quizQuestions.push(obj); hostToast('문제 추가됨 (총 '+quizQuestions.length+'개)'); }
+    renderQuizList(); qbResetForm();
+  };
+  function renderQuizList(){
+    const box=document.getElementById('qbList'); box.innerHTML='';
+    document.getElementById('qbCount').textContent='('+quizQuestions.length+'개)';
+    if(!quizQuestions.length){ box.innerHTML='<div class="qbEmpty">아직 만든 문제가 없어요</div>'; return; }
+    quizQuestions.forEach((qq,idx)=>{
+      const it=document.createElement('div'); it.className='qbItem'+(idx===qbEditIdx?' editing':'');
+      const tag=qq.t==='ox'?'OX':qq.t==='mc'?'객관식':'주관식';
+      it.innerHTML='<span class="tag '+qq.t+'">'+tag+'</span><span class="qq">'+esc(qq.q)+'</span><span class="aa">→ '+esc(quizAnsText(qq))+'</span>';
+      const ed=document.createElement('button'); ed.className='ed'; ed.textContent='수정'; ed.onclick=()=>loadForEdit(idx);
+      const dl=document.createElement('button'); dl.className='dl'; dl.textContent='삭제'; dl.onclick=()=>{ quizQuestions.splice(idx,1); if(qbEditIdx===idx) qbResetForm(); renderQuizList(); };
+      it.append(ed,dl); box.appendChild(it);
+    });
+  }
+  function loadForEdit(idx){
+    const qq=quizQuestions[idx]; if(!qq) return;
+    qbShowType(qq.t);
+    document.getElementById('qbQ').value=qq.q;
+    if(qq.t==='ox'){ qbOxAns=qq.a; document.getElementById('qbOxO').classList.toggle('sel',qq.a==='O'); document.getElementById('qbOxX').classList.toggle('sel',qq.a==='X'); }
+    else if(qq.t==='mc'){ const box=document.getElementById('qbOpts'); box.innerHTML=''; qq.opts.forEach(o=>addOptRow(o));
+      const rows=[...box.children]; if(rows[qq.a]){ const b=rows[qq.a].querySelector('.qbAnsBtn'); b.classList.add('on'); b.textContent='✔ 정답'; } }
+    else { const box=document.getElementById('qbAns'); box.innerHTML=''; qq.a.forEach(a=>addAnsInput(a)); }
+    qbEditIdx=idx; document.getElementById('qbAddQ').textContent='✔ 수정 완료';
+    renderQuizList();
+    document.getElementById('qbQ').focus();
+  }
+  // 적용 / 내보내기 / 불러오기 / 전체지우기
+  document.getElementById('hSetQuiz').onclick = ()=>{
+    const timer=document.getElementById('hQuizTimer').checked;
+    send({type:'setquiz', questions:quizQuestions, timer});
+    hostToast(quizQuestions.length ? ('문제 '+quizQuestions.length+'개 적용') : '문제 없음 (퀴즈칸 안 나옴)');
+  };
+  document.getElementById('hClearQuiz').onclick = ()=>{ if(!confirm('만든 문제를 모두 지울까요?')) return; quizQuestions=[]; qbResetForm(); renderQuizList(); send({type:'setquiz', questions:[], timer:document.getElementById('hQuizTimer').checked}); hostToast('전체 지움'); };
   document.getElementById('hExportQuiz').onclick = ()=>{
-    const blob = new Blob([quizInput.value], {type:'text/plain;charset=utf-8'});
-    const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-    const d = new Date(); const stamp = d.getFullYear()+''+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
-    a.download = '퀴즈문제_'+stamp+'.txt'; a.click(); URL.revokeObjectURL(a.href);
-    hostToast('문제를 파일로 저장했어요');
+    if(!quizQuestions.length){ hostToast('내보낼 문제가 없어요'); return; }
+    const text=quizQuestions.map(quizToLine).join('\n');
+    const blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    const d=new Date(); const stamp=d.getFullYear()+''+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');
+    a.download='퀴즈문제_'+stamp+'.txt'; a.click(); URL.revokeObjectURL(a.href);
+    hostToast('문제 '+quizQuestions.length+'개를 파일로 저장');
   };
   document.getElementById('hImportQuiz').onclick = ()=> document.getElementById('hQuizFile').click();
   document.getElementById('hQuizFile').onchange = (e)=>{
-    const f = e.target.files[0]; if(!f) return;
-    const r = new FileReader();
-    r.onload = ()=>{ quizInput.value = String(r.result||''); hostToast('불러왔어요 · [문제 등록]을 눌러 적용하세요'); };
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=()=>{ const {out,bad}=parseQuiz(String(r.result||'')); quizQuestions=out; renderQuizList(); qbResetForm(); hostToast('불러왔어요: '+out.length+'개'+(bad.length?(' · 오류 '+bad.length+'줄 무시'):'')+' · [게임에 적용]을 누르세요'); };
     r.readAsText(f); e.target.value='';
   };
+  qbResetForm(); renderQuizList();   // 초기화
   // 카드에 팀 색 입히기(렌더와 즉시반영에서 공용)
   function styleCard(el, ptEl, team){
     const ti = TEAM_BY_ID[team];
