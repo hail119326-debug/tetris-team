@@ -345,6 +345,7 @@
   /* 방어막 배지 */
   .shieldBadge{font-weight:900;font-size:15px;color:#0b0e1a;background:#38bdf8;border-radius:999px;padding:2px 12px}
   .shieldBadge:empty{display:none}
+  .shieldBadge.mirrorB{background:#c084fc}
   .quizHelp{font-size:12px;color:var(--muted);line-height:1.7;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
   .quizHelp code{color:var(--accent);font-size:11.5px;background:rgba(110,231,255,.08);padding:1px 5px;border-radius:4px;font-family:ui-monospace,monospace}
   .quizTimerToggle{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px;color:var(--text);cursor:pointer}
@@ -439,6 +440,7 @@
     <span class="roomTag" id="meRoom"></span>
     <span class="teamTag" id="meTeam"></span>
     <span class="shieldBadge" id="shieldBadge"></span>
+    <span class="shieldBadge mirrorB" id="mirrorBadge"></span>
     <span class="timeLeft" id="timeLeft"></span>
     <span class="rank" id="meRank"></span>
   </div>
@@ -1361,10 +1363,30 @@ function initPlayer(){
     if(m.type==='start'){ timeMode=(m.gameType==='time'); timeBase=0; timeEndsAt=m.endsAt||0; clearRevive(); startCountdown(); return; }
     if(m.type==='reset'){ hideBigCount(); backToRoomLobby(); return; }
     if(m.type==='team'){ setMyTeam(m.team); return; }
-    if(m.type==='garbage'){ if(G && state==='playing'){ const blocked=addGarbage(m.amount); if(!blocked){ showAtkToast('💥 '+esc(m.from||'상대')+'의 공격!  +'+m.amount+'줄', 'hit'); sfx('atk_hit'); flashHit(); } } addMyLog('🛡️ '+esc(m.from||'상대')+' → 나 '+m.amount+'줄','hit'); return; }
+    if(m.type==='garbage'){
+      if(G && state==='playing'){
+        const res = handleIncoming('atk', m.amount, m.from, m.fromId, m.noreflect);
+        if(res==='hit'){
+          addGarbage(m.amount);
+          if(!(G&&G.over)){
+            const who=esc(m.from||'상대');
+            showAtkToast((m.reflected?'🔄 '+who+'가 반사!  +':'💥 '+who+'의 공격!  +')+m.amount+'줄', 'hit');
+            sfx('atk_hit'); flashHit();
+          }
+        }
+      }
+      addMyLog('🛡️ '+esc(m.from||'상대')+' → 나 '+m.amount+'줄','hit'); return;
+    }
     if(m.type==='attacked'){ showAtkToast('⚡ '+esc(m.to||'상대')+' 공격 성공!  +'+m.amount+'줄', 'send'); sfx('atk_send'); flashSend(); addMyLog('⚔️ 나 → '+esc(m.to||'상대')+' '+m.amount+'줄','send'); return; }
+    if(m.type==='blockednotice'){ const kn=(m.kind==='fog')?'안개':'공격'; showAtkToast('🛡️ '+esc(m.by||'상대')+'가 '+kn+'를 막았어요!', 'hit'); addMyLog('🛡️ '+esc(m.by||'상대')+'가 내 '+kn+' 막음','hit'); return; }
     if(m.type==='quiz'){ quizList = Array.isArray(m.questions)?m.questions:[]; quizTimerOn = m.timer!==false; return; }
-    if(m.type==='fogged'){ if(G && state==='playing') showFog(); return; }
+    if(m.type==='fogged'){
+      if(G && state==='playing'){
+        const res = handleIncoming('fog', 0, m.from, m.fromId, m.noreflect);
+        if(res==='hit'){ if(m.reflected) showItemToast('🔄 '+esc(m.from||'상대')+'가 안개 반사!'); showFog(); }
+      }
+      return;
+    }
     if(m.type==='leadchange'){ showReversal(m); return; }
     if(m.type==='fogsent'){ addMyLog('🤯 나 → '+esc(m.to||'상대')+' 안개','send'); return; }
     if(m.type==='gameover'){ hideBigCount(); clearRevive(); killQuiz(); timeMode=false; onGameOver(m); return; }
@@ -1656,8 +1678,9 @@ function initPlayer(){
     bonus:  {emoji:'🎁', label:'보너스'},
     shield: {emoji:'🛡️', label:'방어막'},
     fog:    {emoji:'🤯', label:'안개'},
+    mirror: {emoji:'🔄', label:'거울'},
   };
-  const ITEM_KEYS = ['clean','atk','bonus','shield','fog'];
+  const ITEM_KEYS = ['clean','atk','bonus','shield','fog','mirror'];
   const ITEM_CHANCE = 0.15;   // 블록에 아이템 붙을 확률
   const QUIZ_CHANCE = 0.10;   // 블록에 퀴즈칸 붙을 확률 (문제 있을 때만)
 
@@ -1669,7 +1692,8 @@ function initPlayer(){
       quizmarks: Array.from({length:ROWS},()=>Array(COLS).fill(false)), // 칸별 퀴즈칸(❓)
       cur:null, queue:[], bag:[], score:0, lines:0, level:1, down:false, over:false, combo:-1,
       atkSent:0, maxCombo:0, wordBonus:0, comboBonusTotal:0,   // 통계: 공격줄, 최대콤보, 단어보너스, 콤보보너스
-      shield:false,   // 방어막(다음 공격 1번 막기)
+      shield:0,   // 방어막 개수 (최대 3, 공격/안개 1번씩 막음)
+      mirror:0,   // 거울 개수 (최대 3, 공격/안개를 보낸 사람에게 반사)
     };
   }
   function bagNext(g){
@@ -1780,11 +1804,26 @@ function initPlayer(){
     }
     if(gotQuiz && quizList.length) openQuiz();   // 퀴즈칸 있었으면 문제 출제
   }
-  function addGarbage(n){
+  // 들어온 공격/안개 처리: 거울(반사) → 방어막(막기) → 맞음
+  function handleIncoming(kind, amount, from, fromId, noreflect){
+    const g=G; if(!g) return 'hit';
+    const kName = (kind==='fog')?'안개':'공격';
+    if(!noreflect && g.mirror>0 && fromId){          // 거울 먼저 (반사)
+      g.mirror--; updateBadges();
+      send({type:'reflect', toId:fromId, kind, amount});
+      showItemToast('🔄 '+esc(from||'상대')+'의 '+kName+' 반사!'); sfx('atk_send'); flashSend();
+      return 'reflected';
+    }
+    if(g.shield>0){                                   // 방어막 (막기)
+      g.shield--; updateBadges();
+      if(fromId) send({type:'blocked', toId:fromId, kind});
+      showItemToast('🛡️ '+esc(from||'상대')+'의 '+kName+' 막음!'); sfx('atk_send');
+      return 'blocked';
+    }
+    return 'hit';
+  }
+  function addGarbage(n){   // 순수 피해 적용 (방해줄 쌓기) — 막기/반사는 handleIncoming에서 이미 처리
     const g=G;
-    // 방어막이 있으면 이번 공격 1번 막기
-    if(g.shield){ g.shield=false; showItemToast('🛡️ 방어막이 공격을 막았어요!'); sfx('atk_send'); updateShieldBadge(); return true; }
-    // 위쪽 n줄에 블록이 있으면 밀려서 탈락
     for(let y=0;y<n;y++) if(g.grid[y].some(v=>v!==0)){ g.over=true; }
     for(let i=0;i<n;i++){
       g.grid.shift(); g.letters.shift(); g.items.shift(); g.quizmarks.shift();
@@ -1807,7 +1846,8 @@ function initPlayer(){
     if(item==='clean'){ cleanBottom(2); showItemToast('🧹 청소!  아래 2줄 삭제'); sfx('clear'); }
     else if(item==='atk'){ send({type:'itematk', amount:1}); showItemToast('⚔️ 공격!  상대에게 +1줄'); sfx('atk_send'); flashSend(); }
     else if(item==='bonus'){ g.score+=100; showItemToast('🎁 보너스!  +100점'); sfx('combo2'); }
-    else if(item==='shield'){ g.shield=true; updateShieldBadge(); showItemToast('🛡️ 방어막!  다음 공격 1번 막기'); sfx('combo1'); }
+    else if(item==='shield'){ g.shield=Math.min(3,(g.shield||0)+1); updateBadges(); showItemToast('🛡️ 방어막! (지금 '+g.shield+'개)  공격·안개 막기'); sfx('combo1'); }
+    else if(item==='mirror'){ g.mirror=Math.min(3,(g.mirror||0)+1); updateBadges(); showItemToast('🔄 거울! (지금 '+g.mirror+'개)  공격·안개 반사'); sfx('combo1'); }
     else if(item==='fog'){ send({type:'fog'}); showItemToast('🤯 안개!  상대 화면 흐리기'); sfx('atk_send'); }
   }
   let itemToastTimer=null;
@@ -1816,7 +1856,11 @@ function initPlayer(){
     el.innerHTML=html; el.className='itemToast'; void el.offsetWidth; el.className='itemToast show';
     clearTimeout(itemToastTimer); itemToastTimer=setTimeout(()=>{ el.className='itemToast'; }, 1800);
   }
-  function updateShieldBadge(){ const el=document.getElementById('shieldBadge'); if(el) el.textContent = (G && G.shield) ? '🛡️ 방어막' : ''; }
+  function updateBadges(){
+    const s=document.getElementById('shieldBadge'); if(s) s.textContent = (G && G.shield>0) ? ('🛡️ ×'+G.shield) : '';
+    const mr=document.getElementById('mirrorBadge'); if(mr) mr.textContent = (G && G.mirror>0) ? ('🔄 ×'+G.mirror) : '';
+  }
+  function updateShieldBadge(){ updateBadges(); }   // 하위호환
   let fogTimer=null;
   function showFog(){
     const el=document.getElementById('fogOverlay'); if(!el) return;
