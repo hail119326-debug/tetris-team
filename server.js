@@ -237,6 +237,30 @@ function handleMessage(ws, raw) {
     case 'fog':              // 아이템: 안개 (개인전 랜덤 1명 / 팀전 랜덤 상대팀 전원)
       sendFog(ws);
       break;
+    case 'reflect':          // 거울: 받은 공격/안개를 보낸 사람에게 되돌림
+      {
+        const room = roomById(ws.meta.room);
+        if (!room || room.phase !== 'playing') break;
+        const target = playersIn(room.id).find(p => p.meta.id === (m.toId | 0) && p.meta.alive);
+        if (!target) break;
+        if (m.kind === 'fog') {
+          target.send(JSON.stringify({ type: 'fogged', from: ws.meta.name, fromId: ws.meta.id, reflected: true, noreflect: true }));
+        } else {
+          const amt = Math.max(1, m.amount | 0);
+          target.send(JSON.stringify({ type: 'garbage', amount: amt, from: ws.meta.name, fromId: ws.meta.id, reflected: true, noreflect: true }));
+        }
+        const fx = JSON.stringify({ type: 'attackfx', fromId: ws.meta.id, toId: target.meta.id, amount: (m.amount | 0), room: room.id });
+        for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(fx);
+      }
+      break;
+    case 'blocked':          // 방어막: 막았다고 보낸 사람에게 알림
+      {
+        const room = roomById(ws.meta.room);
+        if (!room) break;
+        const target = playersIn(room.id).find(p => p.meta.id === (m.toId | 0));
+        if (target) target.send(JSON.stringify({ type: 'blockednotice', by: ws.meta.name, kind: m.kind || 'atk' }));
+      }
+      break;
     case 'itematk':          // 아이템: 공격 (개인전 랜덤 1명 / 팀전 랜덤 상대팀 전원, 1줄)
       sendItemAttack(ws, m.amount | 0);
       break;
@@ -414,7 +438,7 @@ function sendGarbage(from, amount) {
     : inRoom.filter(p => p !== from && p.meta.alive);
   if (!targets.length) return;
   const t = targets[(Math.random() * targets.length) | 0];
-  t.send(JSON.stringify({ type: 'garbage', amount, from: from.meta.name }));
+  t.send(JSON.stringify({ type: 'garbage', amount, from: from.meta.name, fromId: from.meta.id }));
   from.send(JSON.stringify({ type: 'attacked', amount, to: t.meta.name }));
   const fx = JSON.stringify({ type: 'attackfx', fromId: from.meta.id, toId: t.meta.id, amount, room: room.id });
   for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(fx);
@@ -437,7 +461,7 @@ function sendFog(from) {
     targets = [others[(Math.random() * others.length) | 0]];
   }
   if (!targets || !targets.length) return;
-  const msg = JSON.stringify({ type: 'fogged', from: from.meta.name });
+  const msg = JSON.stringify({ type: 'fogged', from: from.meta.name, fromId: from.meta.id });
   const names = [];
   for (const t of targets) { t.send(msg); names.push(t.meta.name); }
   from.send(JSON.stringify({ type: 'fogsent', to: (from.meta.team ? (names.length + '명') : (names[0] || '상대')) }));
@@ -465,7 +489,7 @@ function sendItemAttack(from, amount) {
   if (!targets || !targets.length) return;
   const names = [];
   for (const t of targets) {
-    t.send(JSON.stringify({ type: 'garbage', amount: n, from: from.meta.name }));
+    t.send(JSON.stringify({ type: 'garbage', amount: n, from: from.meta.name, fromId: from.meta.id }));
     names.push(t.meta.name);
     const fx = JSON.stringify({ type: 'attackfx', fromId: from.meta.id, toId: t.meta.id, amount: n, room: room.id });
     for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(fx);
