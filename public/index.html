@@ -153,8 +153,8 @@
   .standTeams{display:flex;flex-direction:column;gap:8px;width:min(560px,92vw)}
   .stTeam{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);
     border-left:5px solid var(--tc);border-radius:12px;padding:10px 12px}
-  .stTeam .stPos{font-weight:900;color:var(--tc);width:22px;text-align:center}
-  .stTeam .stName{font-weight:800;color:var(--tc);min-width:84px}
+  .stTeam .stPos{font-weight:900;color:var(--tct,var(--tc));width:22px;text-align:center}
+  .stTeam .stName{font-weight:800;color:var(--tct,var(--tc));min-width:84px}
   .stTeam .stNums{font-size:13px;color:var(--muted)} .stTeam .stNums b{color:var(--text);font-size:16px}
   .rankRows{display:flex;flex-direction:column;gap:4px;width:min(560px,92vw);max-height:48vh;overflow:auto}
   .rankRow{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;background:var(--panel)}
@@ -273,7 +273,7 @@
   #teamBar{display:none;gap:14px}
   .tcard{flex:1;background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--tc);
     border-radius:10px;padding:3px 12px}
-  .tcard .tname{font-weight:800;color:var(--tc);font-size:13px;line-height:1.2}
+  .tcard .tname{font-weight:800;color:var(--tct,var(--tc));font-size:13px;line-height:1.2}
   .tcard .tscore{font-size:19px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.1}
   .tcard .tmeta{font-size:10px;color:var(--muted);line-height:1.2}
   .tcard .tbarfill{height:4px;background:var(--panel2);border-radius:999px;margin-top:3px;overflow:hidden}
@@ -537,7 +537,7 @@
     <div id="sdMinBox" class="sdMinBox hidden">제한 시간 <button id="sdMinDn">−</button><b id="sdMinVal">5</b>분 <button id="sdMinUp">＋</button></div>
     <div id="sdTeamBox" class="sdTeamBox hidden">
       <div class="sdHint">빠른 팀 나누기</div>
-      <div class="sdAutoRow"><button class="sdAuto" data-n="2">2팀</button><button class="sdAuto" data-n="3">3팀</button><button class="sdAuto" data-n="4">4팀</button><button class="sdAuto" data-n="5">5팀</button><button class="sdAuto" data-n="6">6팀</button><button class="sdAuto" data-n="7">7팀</button><button class="sdAuto" data-n="8">8팀</button></div>
+      <div class="sdAutoRow"><button class="sdAuto" data-n="2">2팀</button><button class="sdAuto" data-n="3">3팀</button><button class="sdAuto" data-n="4">4팀</button><button class="sdAuto" data-n="5">5팀</button><button class="sdAuto" data-n="6">6팀</button><button class="sdAuto" data-n="7">7팀</button><button class="sdAuto" data-n="8">8팀</button><button class="sdAuto" data-n="9">9팀</button><button class="sdAuto" data-n="10">10팀</button></div>
       <div class="sdHint2">직접 나누려면 닫고 학생 카드를 누르세요</div>
     </div>
     <div class="sdBtns"><button id="sdStart" class="sdStart">▶ 시작</button><button id="sdClose" class="sdClose">닫기</button></div>
@@ -638,7 +638,7 @@
     <div id="hsdMinBox" class="sdMinBox hidden">제한 시간 <button id="hsdMinDn">−</button><b id="hsdMinVal">5</b>분 <button id="hsdMinUp">＋</button></div>
     <div id="hsdTeamBox" class="sdTeamBox hidden">
       <div class="sdHint">빠른 팀 나누기</div>
-      <div class="sdAutoRow"><button class="hsdAuto" data-n="2">2팀</button><button class="hsdAuto" data-n="3">3팀</button><button class="hsdAuto" data-n="4">4팀</button><button class="hsdAuto" data-n="5">5팀</button><button class="hsdAuto" data-n="6">6팀</button><button class="hsdAuto" data-n="7">7팀</button><button class="hsdAuto" data-n="8">8팀</button></div>
+      <div class="sdAutoRow"><button class="hsdAuto" data-n="2">2팀</button><button class="hsdAuto" data-n="3">3팀</button><button class="hsdAuto" data-n="4">4팀</button><button class="hsdAuto" data-n="5">5팀</button><button class="hsdAuto" data-n="6">6팀</button><button class="hsdAuto" data-n="7">7팀</button><button class="hsdAuto" data-n="8">8팀</button><button class="hsdAuto" data-n="9">9팀</button><button class="hsdAuto" data-n="10">10팀</button></div>
       <div class="sdHint2">직접 나누려면 닫고 학생 카드를 누르세요</div>
     </div>
     <div class="sdBtns"><button id="hsdStart" class="sdStart">▶ 시작</button><button id="hsdClose" class="sdClose">닫기</button></div>
@@ -774,16 +774,23 @@ const COLS = 10, ROWS = 20;
    이 목록의 앞에서부터 그만큼 사용됩니다. 이름·색은 자유롭게 수정하세요.
    ============================================================ */
 const TEAM_PALETTE = [
-  { id:'red',    name:'레드',   color:'#ef4444' },  // 또렷한 빨강(핑크와 분리)
-  { id:'blue',   name:'블루',   color:'#3b82f6' },  // 진한 파랑
-  { id:'green',  name:'그린',   color:'#22c55e' },  // 순수 초록(시안과 분리)
-  { id:'gold',   name:'골드',   color:'#facc15' },  // 밝은 노랑(오렌지와 분리)
-  { id:'purple', name:'퍼플',   color:'#a855f7' },  // 선명한 보라
-  { id:'orange', name:'오렌지', color:'#f97316' },  // 진한 주황
-  { id:'cyan',   name:'시안',   color:'#06b6d4' },  // 청록(그린/블루와 분리)
-  { id:'pink',   name:'핑크',   color:'#ec4899' },  // 마젠타 핑크(레드와 분리)
+  { id:'red',    name:'빨강',   color:'#E6194B' },
+  { id:'blue',   name:'파랑',   color:'#4363D8' },
+  { id:'yellow', name:'노랑',   color:'#FFE119' },
+  { id:'purple', name:'퍼플',   color:'#7C1FD4' },
+  { id:'orange', name:'주황',   color:'#F58231' },
+  { id:'silver', name:'은색',   color:'#C0C7D4' },
+  { id:'sky',    name:'하늘',   color:'#42D4F4' },
+  { id:'pink',   name:'핑크',   color:'#F032E6' },
+  { id:'lime',   name:'연두',   color:'#6B9A1E' },
+  { id:'brown',  name:'갈색',   color:'#6E3B14' },
 ];
 const TEAM_BY_ID = Object.fromEntries(TEAM_PALETTE.map(t => [t.id, t]));
+// 어두운 팀색(갈색·연두 등)은 글자로 쓸 때 안 보이므로, 글자용으로만 밝게 보정
+function _teamLum(hex){ const n=parseInt(hex.slice(1),16); return (0.299*((n>>16)&255)+0.587*((n>>8)&255)+0.114*(n&255))/255; }
+function _teamLighten(hex, amt){ const n=parseInt(hex.slice(1),16); let r=(n>>16)&255,g=(n>>8)&255,b=n&255; r=Math.round(r+(255-r)*amt); g=Math.round(g+(255-g)*amt); b=Math.round(b+(255-b)*amt); return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); }
+TEAM_PALETTE.forEach(t=>{ t.text = _teamLum(t.color) < 0.42 ? _teamLighten(t.color, 0.5) : t.color; });
+function teamTextColor(id){ const t=TEAM_BY_ID[id]; return t ? (t.text||t.color) : '#93a2c8'; }
 function teamNameOf(id){ const t=TEAM_BY_ID[id]; return t?t.name:'상대'; }
 
 // "⚡ 역전!" 배너 (학생·교사 공용) — 시간모드 마지막 30초 순위 변동시
@@ -881,7 +888,7 @@ function buildTeamStandings(teams){
   return '<div class="standTeams">' + real.map((t,i)=>{
     if(t.avg !== prev){ pos=i+1; prev=t.avg; }           // 평균 같으면 공동 등수
     const info = TEAM_BY_ID[t.team] || {name:t.team, color:'#8b95b5'};
-    return `<div class="stTeam" style="--tc:${info.color}">
+    return `<div class="stTeam" style="--tc:${info.color};--tct:${info.text||info.color}">
       <span class="stPos">${pos}</span>
       <span class="stName">${esc(info.name)} 팀</span>
       <span class="stNums">평균 <b>${t.avg}</b> · 합산 ${t.score} · 생존 ${t.alive}/${t.players}</span>
@@ -896,7 +903,7 @@ function buildRankList(plist, meId){
     const info = TEAM_BY_ID[p.team];
     const me = p.id===meId ? ' me' : '';
     const dead = p.alive ? '' : ' rkDead';
-    const team = info ? ` <span class="rkTeam" style="color:${info.color}">${esc(info.name)}</span>` : '';
+    const team = info ? ` <span class="rkTeam" style="color:${info.text||info.color}">${esc(info.name)}</span>` : '';
     return `<tr class="rkRow${me}">`
       + `<td class="cPos">${pos}</td>`
       + `<td class="cName${dead}">${esc(p.name)}${team}</td>`
@@ -1418,8 +1425,8 @@ function initHost(){
     const teamMode = !!(ft || tt);
     const fromName = esc(nameById[fromId]||'?');
     const toName = esc(nameById[to]||'?');
-    const fromColor = teamMode ? ((TEAM_BY_ID[ft]||{}).color || '#93a2c8') : '#60a5fa';   // 개인전 공격자=파랑
-    const toColor   = teamMode ? ((TEAM_BY_ID[tt]||{}).color || '#93a2c8') : '#fb7185';   // 개인전 피격자=빨강
+    const fromColor = teamMode ? teamTextColor(ft) : '#60a5fa';   // 개인전 공격자=파랑
+    const toColor   = teamMode ? teamTextColor(tt) : '#fb7185';   // 개인전 피격자=빨강
     let tail;
     if(result==='block')      tail = '<span class="tagBlock">🛡️ 막힘</span>';
     else if(result==='reflect') tail = '<span class="tagReflect">🔄 반사</span>';
@@ -1442,7 +1449,7 @@ function initHost(){
       tb.style.display = 'flex';
       tb.innerHTML = present.map(t=>{
         const info = TEAM_BY_ID[t.team] || {name:t.team, color:'#8b95b5'};
-        return `<div class="tcard" style="--tc:${info.color}">
+        return `<div class="tcard" style="--tc:${info.color};--tct:${info.text||info.color}">
           <div class="tname">${esc(info.name)} 팀</div>
           <div class="tscore">${t.score}</div>
           <div class="tmeta">생존 ${t.alive}/${t.players}명 · ${t.lines}줄</div>
