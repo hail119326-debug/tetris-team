@@ -509,7 +509,7 @@ function smallestActiveTeam(room, except) {
   return best;
 }
 function autoAssign(room, teamIds) {
-  room.activeTeams = teamIds.filter(x => typeof x === 'string' && x).slice(0, 8);
+  room.activeTeams = teamIds.filter(x => typeof x === "string" && x).slice(0, 10);
   if (room.activeTeams.length) room.mode = 'team';
   const ps = playersIn(room.id);
   for (let i = ps.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0;[ps[i], ps[j]] = [ps[j], ps[i]]; }
