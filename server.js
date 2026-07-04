@@ -249,7 +249,7 @@ function handleMessage(ws, raw) {
           const amt = Math.max(1, m.amount | 0);
           target.send(JSON.stringify({ type: 'garbage', amount: amt, from: ws.meta.name, fromId: ws.meta.id, reflected: true, noreflect: true }));
         }
-        const fx = JSON.stringify({ type: 'attackfx', fromId: ws.meta.id, toId: target.meta.id, amount: (m.amount | 0), room: room.id });
+        const fx = JSON.stringify({ type: 'attackfx', fromId: (m.toId | 0), toId: ws.meta.id, result: 'reflect', room: room.id });
         for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(fx);
       }
       break;
@@ -259,6 +259,8 @@ function handleMessage(ws, raw) {
         if (!room) break;
         const target = playersIn(room.id).find(p => p.meta.id === (m.toId | 0));
         if (target) target.send(JSON.stringify({ type: 'blockednotice', by: ws.meta.name, kind: m.kind || 'atk' }));
+        const bfx = JSON.stringify({ type: 'attackfx', fromId: (m.toId | 0), toId: ws.meta.id, result: 'block', room: room.id });
+        for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(bfx);
       }
       break;
     case 'itematk':          // 아이템: 공격 (개인전 랜덤 1명 / 팀전 랜덤 상대팀 전원, 1줄)
