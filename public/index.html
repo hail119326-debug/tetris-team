@@ -433,6 +433,10 @@
   .logRow{font-size:13px;font-weight:700;color:var(--muted);background:var(--panel2);border:1px solid var(--line);
     border-radius:8px;padding:5px 8px;display:flex;align-items:center;gap:6px;animation:logIn .3s ease}
   .logRow b{color:var(--text)} .logRow .amt{margin-left:auto;color:#fb7185;font-weight:900}
+  .logRow .atkArrow{margin:0 7px;font-size:12px;opacity:.9}
+  .logRow .tagBlock{margin-left:auto;font-weight:900;color:#cbd5e1;font-size:12px;background:rgba(148,163,184,.16);border:1px solid #64748b;border-radius:7px;padding:2px 8px}
+  .logRow .tagReflect{margin-left:auto;font-weight:900;color:#c4b5fd;font-size:12px;background:rgba(167,139,250,.18);border:1px solid #a78bfa;border-radius:7px;padding:2px 8px}
+  .logRow.reflect{border-color:rgba(167,139,250,.4)}
   @keyframes logIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
   .hbtn.finish{background:linear-gradient(90deg,#fb923c,#ef4444);color:#fff}
   /* 줄 지움/콤보/테트리스 연출 */
@@ -1322,7 +1326,7 @@ function initHost(){
       document.getElementById('kwNow').textContent = n ? ('등록됨: '+m.words.join(', ')) : '등록된 키워드 없음';
       return;
     }
-    if(m.type==='attackfx'){ if(!onWaitTab) flashAttack(m.fromId, m.toId, m.amount); return; }
+    if(m.type==='attackfx'){ if(!onWaitTab){ if(m.result){ addAtkLog(m.fromId, m.toId, 0, m.result); } else { flashAttack(m.fromId, m.toId, m.amount); } } return; }
     if(m.type==='leadchange'){ showReversal(m); return; }
     if(m.type==='quizinfo'){ const el=document.getElementById('quizNow'); if(el) el.textContent = m.count>0 ? ('등록된 문제 '+m.count+'개'+(m.timer?' · 시간제한 켬':' · 시간제한 끔')) : '등록된 문제 없음'; return; }
     if(m.type==='start'){ if(!onWaitTab) hostRunCount(5, false); return; }
@@ -1396,6 +1400,7 @@ function initHost(){
   function hostHideCount(){ clearTimeout(hostCountTimer); const w=document.getElementById('hostCount'); if(w){ w.classList.add('hidden'); w.classList.remove('end'); } }
 
   const nameById = {};   // id -> 이름 (공격 기록용)
+  const teamById = {};   // id -> 팀 (공격 기록 색상용)
   function flashAttack(fromId, toId, amount){
     const v = cards.get(toId), a = cards.get(fromId);
     if(v){ v.el.classList.remove('fxHit'); void v.el.offsetWidth; v.el.classList.add('fxHit');
@@ -1404,14 +1409,28 @@ function initHost(){
         v.el.appendChild(b); setTimeout(()=>b.remove(), 800); } }
     if(a){ a.el.classList.remove('fxSend'); void a.el.offsetWidth; a.el.classList.add('fxSend');
       setTimeout(()=>a.el.classList.remove('fxSend'), 700); }
-    addAtkLog(nameById[fromId]||'?', nameById[toId]||'?', amount);
+    addAtkLog(fromId, toId, amount);
   }
-  function addAtkLog(from, to, amount){
+  function addAtkLog(fromId, to, amount, result){
     const log=document.getElementById('atkLog'); if(!log) return;
-    const row=document.createElement('div'); row.className='logRow';
-    row.innerHTML='<b>'+esc(from)+'</b> → '+esc(to)+'<span class="amt">'+amount+'줄</span>';
+    // 팀전이면 팀 색, 개인전이면 공격자=파랑 / 피격자=빨강
+    const ft = teamById[fromId], tt = teamById[to];
+    const teamMode = !!(ft || tt);
+    const fromName = esc(nameById[fromId]||'?');
+    const toName = esc(nameById[to]||'?');
+    const fromColor = teamMode ? ((TEAM_BY_ID[ft]||{}).color || '#93a2c8') : '#60a5fa';   // 개인전 공격자=파랑
+    const toColor   = teamMode ? ((TEAM_BY_ID[tt]||{}).color || '#93a2c8') : '#fb7185';   // 개인전 피격자=빨강
+    let tail;
+    if(result==='block')      tail = '<span class="tagBlock">🛡️ 막힘</span>';
+    else if(result==='reflect') tail = '<span class="tagReflect">🔄 반사</span>';
+    else                      tail = '<span class="amt">'+amount+'줄</span>';
+    const row=document.createElement('div'); row.className='logRow'+(result?(' '+result):'');
+    row.innerHTML='<b style="color:'+fromColor+'">'+fromName+'</b>'
+      + '<span class="atkArrow">⚔️</span>'
+      + '<b style="color:'+toColor+'">'+toName+'</b>'
+      + tail;
     log.prepend(row);
-    while(log.children.length>8) log.removeChild(log.lastChild);   // 최근 8개만
+    while(log.children.length>12) log.removeChild(log.lastChild);   // 최근 12개
   }
 
   function renderHost(m){
@@ -1455,6 +1474,7 @@ function initHost(){
 
     order.forEach(p=>{
       nameById[p.id] = p.name;
+      teamById[p.id] = p.team || '';
       let c = cards.get(p.id);
       if(!c){
         const el = document.createElement('div'); el.className='pcard'; el.dataset.pid=p.id;
@@ -1582,11 +1602,12 @@ function initPlayer(){
             showAtkToast((m.reflected?'🔄 '+who+'가 반사!  +':'💥 '+who+'의 공격!  +')+m.amount+'줄', 'hit');
             sfx('atk_hit'); flashHit();
           }
+          addMyLog((m.reflected?'🔄 ':'🛡️ ')+atkName(m.from||'상대','atk')+' → '+atkName('나','vic')+' '+m.amount+'줄','hit');
         }
       }
-      addMyLog('🛡️ '+esc(m.from||'상대')+' → 나 '+m.amount+'줄','hit'); return;
+      return;
     }
-    if(m.type==='attacked'){ showAtkToast('⚡ '+esc(m.to||'상대')+' 공격 성공!  +'+m.amount+'줄', 'send'); sfx('atk_send'); flashSend(); addMyLog('⚔️ 나 → '+esc(m.to||'상대')+' '+m.amount+'줄','send'); return; }
+    if(m.type==='attacked'){ showAtkToast('⚡ '+esc(m.to||'상대')+' 공격 성공!  +'+m.amount+'줄', 'send'); sfx('atk_send'); flashSend(); addMyLog('⚔️ '+atkName('나','atk')+' → '+atkName(m.to||'상대','vic')+' '+m.amount+'줄','send'); return; }
     if(m.type==='blockednotice'){ const kn=(m.kind==='fog')?'안개':'공격'; showAtkToast('🛡️ '+esc(m.by||'상대')+'가 '+kn+'를 막았어요!', 'hit'); addMyLog('🛡️ '+esc(m.by||'상대')+'가 내 '+kn+' 막음','hit'); return; }
     if(m.type==='quiz'){ quizList = Array.isArray(m.questions)?m.questions:[]; quizTimerOn = m.timer!==false; return; }
     if(m.type==='fogged'){
@@ -1597,7 +1618,7 @@ function initPlayer(){
       return;
     }
     if(m.type==='leadchange'){ showReversal(m); return; }
-    if(m.type==='fogsent'){ addMyLog('🤯 나 → '+esc(m.to||'상대')+' 안개','send'); return; }
+    if(m.type==='fogsent'){ addMyLog('🤯 '+atkName('나','atk')+' → '+atkName(m.to||'상대','vic')+' 안개','send'); return; }
     if(m.type==='gameover'){ hideBigCount(); clearRevive(); killQuiz(); timeMode=false; onGameOver(m); return; }
     if(m.type==='endcountdown'){ runBigCount(m.sec||5, true); return; }
     if(m.type==='world'){ if(!myRoom) return; roomMode=m.mode; roomPhase=m.phase; amLeader=(m.leaderId===myId); if(m.gameType) timeMode=(m.gameType==='time'); if(m.endsAt) timeEndsAt=m.endsAt; updateLeaderBar(); onWorld(m); return; }
@@ -1821,16 +1842,18 @@ function initPlayer(){
   }
   function hideBigCount(){ clearTimeout(bigCountTimer); const w=document.getElementById('bigCount'); if(w){ w.classList.add('hidden'); w.classList.remove('end'); } }
   // 하단 공격 기록(나와 관련된 것만, 최근 4개)
-  function addMyLog(text, kind){
+  function addMyLog(html, kind){
     const bar=document.getElementById('atkLogBar'); if(!bar) return;
     const wasHidden = bar.style.display==='none' || !bar.style.display;
     bar.style.display='flex';
-    const chip=document.createElement('div'); chip.className='logChip '+kind; chip.textContent=text;
+    const chip=document.createElement('div'); chip.className='logChip '+kind; chip.innerHTML=html;
     bar.prepend(chip);                       // 최신이 위로
     bar.scrollTop=0;
     while(bar.children.length>50) bar.removeChild(bar.lastChild);  // 메모리 보호용 상한
     if(wasHidden) fit();                      // 로그가 처음 생기면 보드 크기 재조정
   }
+  // 공격자=파랑 / 피격자=빨강 색칠 (학생 기록용)
+  function atkName(n, role){ return '<b style="color:'+(role==='atk'?'#60a5fa':'#fb7185')+'">'+esc(n)+'</b>'; }
   function clearMyLog(){ const bar=document.getElementById('atkLogBar'); if(bar){ bar.innerHTML=''; bar.style.display='none'; fit(); } }
   let lineFxTimer=null;
   function showLineFx(text, kind){
@@ -2040,12 +2063,14 @@ function initPlayer(){
       send({type:'reflect', toId:fromId, kind, amount});
       showItemToast('🔄 '+esc(from||'상대')+'의 '+kName+' 반사!'); sfx('atk_send'); flashSend();
       showImpact('반사!', '#6ee7ff');
+      addMyLog('🔄 '+atkName(from||'상대','atk')+' → '+atkName('나','vic')+' <span style="color:#c4b5fd">반사함</span>','send');
       return 'reflected';
     }
     if(g.shield>0){                                   // 방어막 (막기)
       g.shield--; updateBadges();
       if(fromId) send({type:'blocked', toId:fromId, kind});
       showItemToast('🛡️ '+esc(from||'상대')+'의 '+kName+' 막음!'); sfx('atk_send');
+      addMyLog('🛡️ '+atkName(from||'상대','atk')+' → '+atkName('나','vic')+' <span style="color:#cbd5e1">막음</span>','hit');
       return 'blocked';
     }
     return 'hit';
