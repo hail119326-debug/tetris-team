@@ -537,7 +537,8 @@
     <div id="sdMinBox" class="sdMinBox hidden">제한 시간 <button id="sdMinDn">−</button><b id="sdMinVal">5</b>분 <button id="sdMinUp">＋</button></div>
     <div id="sdTeamBox" class="sdTeamBox hidden">
       <div class="sdHint">빠른 팀 나누기</div>
-      <div class="sdAutoRow"><button class="sdAuto" data-n="2">2팀</button><button class="sdAuto" data-n="3">3팀</button><button class="sdAuto" data-n="4">4팀</button><button class="sdAuto" data-n="5">5팀</button><button class="sdAuto" data-n="6">6팀</button><button class="sdAuto" data-n="7">7팀</button><button class="sdAuto" data-n="8">8팀</button><button class="sdAuto" data-n="9">9팀</button><button class="sdAuto" data-n="10">10팀</button></div>
+      <div class="sdAutoRow"><button class="sdAuto" data-n="2">2팀</button><button class="sdAuto" data-n="3">3팀</button><button class="sdAuto" data-n="4">4팀</button><button class="sdAuto" data-n="5">5팀</button></div>
+      <div class="sdAutoRow"><button class="sdAuto" data-n="6">6팀</button><button class="sdAuto" data-n="7">7팀</button><button class="sdAuto" data-n="8">8팀</button><button class="sdAuto" data-n="9">9팀</button><button class="sdAuto" data-n="10">10팀</button></div>
       <div class="sdHint2">직접 나누려면 닫고 학생 카드를 누르세요</div>
     </div>
     <div class="sdBtns"><button id="sdStart" class="sdStart">▶ 시작</button><button id="sdClose" class="sdClose">닫기</button></div>
@@ -638,7 +639,8 @@
     <div id="hsdMinBox" class="sdMinBox hidden">제한 시간 <button id="hsdMinDn">−</button><b id="hsdMinVal">5</b>분 <button id="hsdMinUp">＋</button></div>
     <div id="hsdTeamBox" class="sdTeamBox hidden">
       <div class="sdHint">빠른 팀 나누기</div>
-      <div class="sdAutoRow"><button class="hsdAuto" data-n="2">2팀</button><button class="hsdAuto" data-n="3">3팀</button><button class="hsdAuto" data-n="4">4팀</button><button class="hsdAuto" data-n="5">5팀</button><button class="hsdAuto" data-n="6">6팀</button><button class="hsdAuto" data-n="7">7팀</button><button class="hsdAuto" data-n="8">8팀</button><button class="hsdAuto" data-n="9">9팀</button><button class="hsdAuto" data-n="10">10팀</button></div>
+      <div class="sdAutoRow"><button class="hsdAuto" data-n="2">2팀</button><button class="hsdAuto" data-n="3">3팀</button><button class="hsdAuto" data-n="4">4팀</button><button class="hsdAuto" data-n="5">5팀</button></div>
+      <div class="sdAutoRow"><button class="hsdAuto" data-n="6">6팀</button><button class="hsdAuto" data-n="7">7팀</button><button class="hsdAuto" data-n="8">8팀</button><button class="hsdAuto" data-n="9">9팀</button><button class="hsdAuto" data-n="10">10팀</button></div>
       <div class="sdHint2">직접 나누려면 닫고 학생 카드를 누르세요</div>
     </div>
     <div class="sdBtns"><button id="hsdStart" class="sdStart">▶ 시작</button><button id="hsdClose" class="sdClose">닫기</button></div>
@@ -1056,7 +1058,14 @@ function initHost(){
   document.getElementById('hsdTime').onclick=()=>{ hsdType='time'; refreshHStartDlg(); };
   document.getElementById('hsdMinDn').onclick=()=>{ hsdMins=Math.max(1,hsdMins-1); refreshHStartDlg(); };
   document.getElementById('hsdMinUp').onclick=()=>{ hsdMins=Math.min(60,hsdMins+1); refreshHStartDlg(); };
-  document.querySelectorAll('#hsdTeamBox .hsdAuto').forEach(b=> b.onclick=()=>{ if(viewRoom){ const n=+b.dataset.n; send({type:'autoassign', room:viewRoom, teams:TEAM_PALETTE.slice(0,n).map(t=>t.id)}); } });
+  document.querySelectorAll('#hsdTeamBox .hsdAuto').forEach(b=> b.onclick=()=>{
+    if(!viewRoom){ hostToast('먼저 방을 선택하세요'); return; }
+    const n=+b.dataset.n;
+    const rm = (lastRooms.rooms||[]).find(r=>r.id===viewRoom);
+    const cnt = rm ? rm.count : 0;
+    send({type:'autoassign', room:viewRoom, teams:TEAM_PALETTE.slice(0,n).map(t=>t.id)});
+    hostToast(cnt ? ('✅ '+n+'팀으로 나눴어요 ('+cnt+'명)') : ('✅ '+n+'팀 설정 · 학생이 들어오면 자동 배정'));
+  });
   document.getElementById('hsdStart').onclick=()=>{ if(viewRoom){ send({type:'start', room:viewRoom, gameType:hsdType, minutes:hsdMins}); document.getElementById('hostOverlay').classList.add('hidden'); } closeHStartDlg(); };
   document.getElementById('hsdClose').onclick=closeHStartDlg;
 
@@ -1719,7 +1728,7 @@ function initPlayer(){
   document.getElementById('sdTime').onclick=()=>{ sdType='time'; refreshStartDlg(); };
   document.getElementById('sdMinDn').onclick=()=>{ sdMins=Math.max(1,sdMins-1); refreshStartDlg(); };
   document.getElementById('sdMinUp').onclick=()=>{ sdMins=Math.min(60,sdMins+1); refreshStartDlg(); };
-  document.querySelectorAll('#sdTeamBox .sdAuto').forEach(b=> b.onclick=()=>{ const n=+b.dataset.n; send({type:'autoassign', teams:TEAM_PALETTE.slice(0,n).map(t=>t.id)}); });
+  document.querySelectorAll('#sdTeamBox .sdAuto').forEach(b=> b.onclick=()=>{ const n=+b.dataset.n; send({type:'autoassign', teams:TEAM_PALETTE.slice(0,n).map(t=>t.id)}); showKwToast('✅ '+n+'팀으로 나눴어요', false); });
   document.getElementById('sdStart').onclick=()=>{ send({type:'start', gameType:sdType, minutes:sdMins}); closeStartDlg(); };
   document.getElementById('sdClose').onclick=closeStartDlg;
 
