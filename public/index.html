@@ -562,6 +562,7 @@
             <h2 id="ovTitle">대기 중</h2>
             <div class="big hidden" id="ovBig"></div>
             <div class="sub" id="ovSub">선생님이 시작하면 자동으로 시작돼요</div>
+            <div id="ovQuizInfo" style="margin-top:10px;font-weight:800;font-size:13px;color:#c4b5fd"></div>
           </div>
         </div>
         <div id="atkLogBar"></div>
@@ -1607,7 +1608,7 @@ function initPlayer(){
   window.onServer = (m)=>{
     if(m.type==='welcome'){ myId=m.id; return; }
     if(m.type==='waiting'){ enterWaitingRoom(); return; }
-    if(m.type==='roomset'){ enterRoom(m); return; }
+    if(m.type==='roomset'){ enterRoom(m); send({type:'quizreq'}); return; }
     if(m.type==='start'){ timeMode=(m.gameType==='time'); timeBase=0; timeEndsAt=m.endsAt||0; clearRevive(); send({type:'quizreq'}); startCountdown(); return; }
     if(m.type==='reset'){ hideBigCount(); backToRoomLobby(); return; }
     if(m.type==='team'){ setMyTeam(m.team); return; }
@@ -1631,6 +1632,8 @@ function initPlayer(){
     if(m.type==='quiz'){
       const prev=quizList.length;
       quizList = Array.isArray(m.questions)?m.questions:[]; quizTimerOn = m.timer!==false;
+      const qi=document.getElementById('ovQuizInfo');
+      if(qi) qi.textContent = quizList.length ? ('❓ 퀴즈 '+quizList.length+'개 준비됨 (블록에 ❓칸이 나와요)') : '';
       if(quizList.length && quizList.length!==prev){ try{ showItemToast('❓ 퀴즈 '+quizList.length+'개 준비됨'); }catch(e){} }
       return;
     }
