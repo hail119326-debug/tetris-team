@@ -693,7 +693,7 @@
       <!-- 등록된 문제 목록 -->
       <div class="qbLab" style="margin-top:12px">등록된 문제 <span id="qbCount" style="color:var(--accent)">(0개)</span></div>
       <div id="qbList" class="qbList"></div>
-      <label class="quizTimerToggle"><input type="checkbox" id="hQuizTimer" checked> 문제 시간제한 켜기 <span style="color:var(--muted);font-weight:700">(O/X 10초·객관식 15초·주관식 20초)</span></label>
+      <label class="quizTimerToggle"><input type="checkbox" id="hQuizTimer" checked> 문제 시간제한 켜기 <span style="color:var(--muted);font-weight:700">(O/X 15초·객관식 20초·주관식 25초)</span></label>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="hbtn assign" id="hSetQuiz">✅ 게임에 적용</button>
         <button class="hbtn settings" id="hExportQuiz">💾 내보내기</button>
@@ -1228,6 +1228,9 @@ function initHost(){
     const timer=document.getElementById('hQuizTimer').checked;
     send({type:'setquiz', questions:quizQuestions, timer});
     hostToast(quizQuestions.length ? ('문제 '+quizQuestions.length+'개 적용') : '문제 없음 (퀴즈칸 안 나옴)');
+    // 즉시 표시 갱신 (서버 응답 기다리지 않음)
+    const el=document.getElementById('quizNow');
+    if(el) el.textContent = quizQuestions.length ? ('✅ 적용됨 · 문제 '+quizQuestions.length+'개'+(timer?' · 시간제한 켬':' · 시간제한 끔')) : '문제 없음 (퀴즈칸 안 나옴)';
   };
   document.getElementById('hClearQuiz').onclick = ()=>{ if(!confirm('만든 문제를 모두 지울까요?')) return; quizQuestions=[]; qbResetForm(); renderQuizList(); send({type:'setquiz', questions:[], timer:document.getElementById('hQuizTimer').checked}); hostToast('전체 지움'); };
   document.getElementById('hExportQuiz').onclick = ()=>{
@@ -1344,7 +1347,7 @@ function initHost(){
     }
     if(m.type==='attackfx'){ if(!onWaitTab){ if(m.result){ addAtkLog(m.fromId, m.toId, 0, m.result); } else { flashAttack(m.fromId, m.toId, m.amount); } } return; }
     if(m.type==='leadchange'){ showReversal(m); return; }
-    if(m.type==='quizinfo'){ const el=document.getElementById('quizNow'); if(el) el.textContent = m.count>0 ? ('등록된 문제 '+m.count+'개'+(m.timer?' · 시간제한 켬':' · 시간제한 끔')) : '등록된 문제 없음'; return; }
+    if(m.type==='quizinfo'){ const el=document.getElementById('quizNow'); if(el) el.textContent = m.count>0 ? ('✅ 적용됨 · 문제 '+m.count+'개'+(m.timer?' · 시간제한 켬':' · 시간제한 끔')) : '문제 없음 (퀴즈칸 안 나옴)'; return; }
     if(m.type==='start'){ if(!onWaitTab) hostRunCount(5, false); return; }
     if(m.type==='endcountdown'){ if(!onWaitTab) hostRunCount(m.sec||5, true); return; }
   };
