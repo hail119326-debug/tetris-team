@@ -417,9 +417,13 @@ function startGame(room, gameType, minutes) {
     room.endsAt = Date.now() + (5 + room.timeLimit) * 1000;   // 시작 5초 카운트 포함
   } else { room.timeLimit = 0; room.endsAt = 0; }
   const startMsg = { type: 'start', room: room.id, gameType: room.gameType, endsAt: room.endsAt };
+  const quizMsg = globalQuiz.length ? JSON.stringify({ type: 'quiz', questions: globalQuiz, timer: globalQuizTimer }) : null;
+  const kwMsg = (room.keywords && room.keywords.length) ? JSON.stringify({ type: 'keywords', words: room.keywords }) : null;
   for (const p of playersIn(room.id)) {
     p.meta.alive = true; p.meta.score = 0; p.meta.lines = 0; p.meta.board = null;
     p.meta.atk = 0; p.meta.maxCombo = 0; p.meta.wbonus = 0; p.meta.cbonus = 0;
+    if (quizMsg) p.send(quizMsg);    // 게임 시작 시 퀴즈 재전송 (놓침 방지)
+    if (kwMsg) p.send(kwMsg);        // 키워드도 재전송
     p.send(JSON.stringify(startMsg));
   }
   for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(JSON.stringify(startMsg)); // 교사 화면 카운트
