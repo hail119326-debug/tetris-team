@@ -378,6 +378,11 @@ function handleMessage(ws, raw) {
     case 'autoassign':
       { const r = targetRoom(ws, m); if (r) autoAssign(r, Array.isArray(m.teams) ? m.teams : []); }
       break;
+    case 'quizreq':          // 학생: 게임 시작 시 현재 퀴즈 당겨오기 (놓침 방지)
+      if (ws.meta.role === 'player') {
+        ws.send(JSON.stringify({ type: 'quiz', questions: globalQuiz, timer: globalQuizTimer }));
+      }
+      break;
     case 'setquiz':          // 교사: 퀴즈 문제 등록 (모든 방)
       if (isHost(ws)) {
         globalQuiz = Array.isArray(m.questions) ? m.questions.slice(0, 500) : [];
