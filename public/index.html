@@ -1838,7 +1838,7 @@ function initPlayer(){
   function showScorePop(amount, color){
     const layer=document.getElementById('scorePopLayer'); if(!layer) return;
     const el=document.createElement('div'); el.className='scorePop';
-    el.textContent='+'+amount; if(color) el.style.color=color;
+    el.textContent=(amount>=0?'+':'')+amount; if(color) el.style.color=color;
     el.style.left=(42+Math.random()*16)+'%';           // 살짝 랜덤 위치
     layer.appendChild(el); void el.offsetWidth; el.classList.add('go');
     setTimeout(()=>el.remove(),1150);
@@ -2139,7 +2139,7 @@ function initPlayer(){
   function clearFog(){ const el=document.getElementById('fogOverlay'); if(el) el.classList.remove('show'); clearTimeout(fogTimer); }
 
   /* ===== 퀴즈 문제 창 ===== */
-  const QUIZ_TIME = { ox:10, mc:15, sa:20 };
+  const QUIZ_TIME = { ox:15, mc:20, sa:25 };
   let quizTimerIv=null;
   function normAns(s){ return String(s||'').replace(/\s+/g,'').toLowerCase(); }
   function openQuiz(){
@@ -2158,21 +2158,21 @@ function initPlayer(){
     const typeEl=document.createElement('div'); typeEl.className='qType'; typeEl.textContent=typeLabel; card.appendChild(typeEl);
     const qtext=document.createElement('div'); qtext.className='qText'; qtext.textContent=q.q; card.appendChild(qtext);
 
-    const done = (correct, correctText) => finishQuiz(back, correct, correctText);
+    const done = (result) => finishQuiz(back, result);   // 'correct' | 'wrong' | 'timeout'
 
     if(q.t==='ox'){
       const row=document.createElement('div'); row.className='qOxRow';
       const bo=document.createElement('button'); bo.className='qOx o'; bo.innerHTML='<span class="big">⭕</span>맞다';
       const bx=document.createElement('button'); bx.className='qOx x'; bx.innerHTML='<span class="big">❌</span>아니다';
-      bo.onclick=()=>done(q.a==='O', q.a==='O'?'O':'X');
-      bx.onclick=()=>done(q.a==='X', q.a==='O'?'O':'X');
+      bo.onclick=()=>done(q.a==='O'?'correct':'wrong');
+      bx.onclick=()=>done(q.a==='X'?'correct':'wrong');
       row.append(bo,bx); card.appendChild(row);
     } else if(q.t==='mc'){
       const box=document.createElement('div'); box.className='qOpts';
       q.opts.forEach((opt,i)=>{
         const b=document.createElement('button'); b.className='qOpt';
         b.innerHTML='<span class="num">'+(i+1)+'</span>'; const sp=document.createElement('span'); sp.textContent=opt; b.appendChild(sp);
-        b.onclick=()=>done(i===q.a, q.opts[q.a]);
+        b.onclick=()=>done(i===q.a?'correct':'wrong');
         box.appendChild(b);
       });
       card.appendChild(box);
@@ -2181,7 +2181,7 @@ function initPlayer(){
       const inp=document.createElement('input'); inp.className='qSubIn'; inp.placeholder='정답을 입력하세요'; inp.autocomplete='off';
       const btn=document.createElement('button'); btn.className='qSubBtn'; btn.textContent='제출하기';
       const hint=document.createElement('div'); hint.className='qSubHint'; hint.textContent='대소문자·띄어쓰기는 신경 안 써도 돼요';
-      const submit=()=>{ const val=normAns(inp.value); const ok=q.a.some(a=>a===val); done(ok, q.a[0]); };
+      const submit=()=>{ const val=normAns(inp.value); const ok=q.a.some(a=>a===val); done(ok?'correct':'wrong'); };
       btn.onclick=submit;
       inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); submit(); } });
       wrap.append(inp,btn,hint); card.appendChild(wrap);
@@ -2195,22 +2195,33 @@ function initPlayer(){
       const paint=()=>{ timerEl.textContent='⏱ '+left+'초'; timerEl.classList.toggle('low', left<=5); };
       paint();
       quizTimerIv = setInterval(()=>{
-        left--; if(left<=0){ clearInterval(quizTimerIv); quizTimerIv=null; done(false, (q.t==='ox')?q.a:(q.t==='mc'?q.opts[q.a]:q.a[0])); }
+        left--; if(left<=0){ clearInterval(quizTimerIv); quizTimerIv=null; done('timeout'); }
         else paint();
       }, 1000);
     }
   }
-  function finishQuiz(back, correct, correctText){
+  function finishQuiz(back, result){
     if(quizTimerIv){ clearInterval(quizTimerIv); quizTimerIv=null; }
     const card = back.querySelector('.quizCard');
-    if(correct && G){ G.score += 400; G.wordBonus = (G.wordBonus||0); updateStats(); sendState(); showScorePop(400, '#34d399'); }
-    card.innerHTML = '<div class="qResult '+(correct?'ok':'no')+'">'
-      + '<div class="em">'+(correct?'🎉':'😅')+'</div>'
-      + '<div class="msg">'+(correct?'정답!':'아쉬워요')+'</div>'
-      + '<div class="sub">'+(correct?'잘했어요!':('정답은 <b style="color:#e8ecf7">'+esc(String(correctText))+'</b> 이었어요'))+'</div>'
-      + (correct?'<div class="plus">+400점</div>':'<div class="plus" style="color:#8b95b5">다음 기회에!</div>')
+    let delta=0, em, msg, sub, plusHtml, cls;
+    if(result==='correct'){
+      delta=400; cls='ok'; em='🎉'; msg='정답!'; sub='잘했어요!';
+      plusHtml='<div class="plus">+400점</div>';
+    } else if(result==='timeout'){
+      delta=-50; cls='no'; em='⏰'; msg='시간 초과'; sub='다음엔 더 빨리!';
+      plusHtml='<div class="plus" style="color:#fb7185">-50점</div>';
+    } else {
+      delta=-150; cls='no'; em='😅'; msg='아쉬워요'; sub='다음 기회에!';
+      plusHtml='<div class="plus" style="color:#fb7185">-150점</div>';
+    }
+    if(G){ G.score = Math.max(0, G.score + delta); updateStats(); sendState(); showScorePop(delta, delta>=0?'#34d399':'#fb7185'); }
+    card.innerHTML = '<div class="qResult '+cls+'">'
+      + '<div class="em">'+em+'</div>'
+      + '<div class="msg">'+msg+'</div>'
+      + '<div class="sub">'+sub+'</div>'
+      + plusHtml
       + '</div>';
-    try{ sfx(correct?'kw_done':'over'); }catch(e){}
+    try{ sfx(result==='correct'?'kw_done':'over'); }catch(e){}
     setTimeout(()=>{ closeQuiz(); }, 1600);
   }
   function closeQuiz(){
