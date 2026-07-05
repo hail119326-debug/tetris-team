@@ -2169,10 +2169,13 @@ function initPlayer(){
       row.append(bo,bx); card.appendChild(row);
     } else if(q.t==='mc'){
       const box=document.createElement('div'); box.className='qOpts';
-      q.opts.forEach((opt,i)=>{
+      // 보기를 매번 랜덤으로 섞기 (순서 외우기 방지). 정답은 내용으로 판별
+      const opts = q.opts.map((opt,i)=>({opt, correct:i===q.a}));
+      for(let i=opts.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [opts[i],opts[j]]=[opts[j],opts[i]]; }
+      opts.forEach((o,i)=>{
         const b=document.createElement('button'); b.className='qOpt';
-        b.innerHTML='<span class="num">'+(i+1)+'</span>'; const sp=document.createElement('span'); sp.textContent=opt; b.appendChild(sp);
-        b.onclick=()=>done(i===q.a?'correct':'wrong');
+        b.innerHTML='<span class="num">'+(i+1)+'</span>'; const sp=document.createElement('span'); sp.textContent=o.opt; b.appendChild(sp);
+        b.onclick=()=>done(o.correct?'correct':'wrong');
         box.appendChild(b);
       });
       card.appendChild(box);
