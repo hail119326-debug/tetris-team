@@ -493,7 +493,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11200</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11300</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -1139,6 +1139,19 @@ function initHost(){
 
   /* ===== 문제 만들기 폼 ===== */
   let quizQuestions = [];     // 만든 문제 목록
+  // 교사 브라우저에 퀴즈 저장 → 서버가 자다 깨도/새로고침해도 유지
+  function saveQuizLocal(){
+    try{ localStorage.setItem('tetris_quiz_v1', JSON.stringify({ q:quizQuestions, timer: (document.getElementById('hQuizTimer')||{}).checked!==false })); }catch(e){}
+  }
+  function loadQuizLocal(){
+    try{
+      const raw=localStorage.getItem('tetris_quiz_v1'); if(!raw) return;
+      const o=JSON.parse(raw); if(o && Array.isArray(o.q) && o.q.length){
+        quizQuestions=o.q;
+        const tg=document.getElementById('hQuizTimer'); if(tg) tg.checked = o.timer!==false;
+      }
+    }catch(e){}
+  }
   let qbCurType = 'mc';       // 현재 선택된 종류
   let qbOxAns = '';           // O/X 선택값
   let qbEditIdx = -1;         // 수정 중인 문제 index (-1=새로)
@@ -1242,12 +1255,13 @@ function initHost(){
   document.getElementById('hSetQuiz').onclick = ()=>{
     const timer=document.getElementById('hQuizTimer').checked;
     send({type:'setquiz', questions:quizQuestions, timer});
+    saveQuizLocal();
     hostToast(quizQuestions.length ? ('문제 '+quizQuestions.length+'개 적용') : '문제 없음 (퀴즈칸 안 나옴)');
     // 즉시 표시 갱신 (서버 응답 기다리지 않음)
     const el=document.getElementById('quizNow');
     if(el) el.textContent = quizQuestions.length ? ('✅ 적용됨 · 문제 '+quizQuestions.length+'개'+(timer?' · 시간제한 켬':' · 시간제한 끔')) : '문제 없음 (퀴즈칸 안 나옴)';
   };
-  document.getElementById('hClearQuiz').onclick = ()=>{ if(!confirm('만든 문제를 모두 지울까요?')) return; quizQuestions=[]; qbResetForm(); renderQuizList(); send({type:'setquiz', questions:[], timer:document.getElementById('hQuizTimer').checked}); hostToast('전체 지움'); };
+  document.getElementById('hClearQuiz').onclick = ()=>{ if(!confirm('만든 문제를 모두 지울까요?')) return; quizQuestions=[]; qbResetForm(); renderQuizList(); send({type:'setquiz', questions:[], timer:document.getElementById('hQuizTimer').checked}); saveQuizLocal(); hostToast('전체 지움'); };
   document.getElementById('hExportQuiz').onclick = ()=>{
     if(!quizQuestions.length){ hostToast('내보낼 문제가 없어요'); return; }
     const text=quizQuestions.map(quizToLine).join('\n');
@@ -1271,13 +1285,17 @@ function initHost(){
       // 불러오면 바로 게임에 적용 (누락 방지)
       const timer=document.getElementById('hQuizTimer').checked;
       send({type:'setquiz', questions:quizQuestions, timer});
+      saveQuizLocal();
       const el=document.getElementById('quizNow');
       if(el) el.textContent = '✅ 적용됨 · 문제 '+quizQuestions.length+'개'+(timer?' · 시간제한 켬':' · 시간제한 끔');
       hostToast('✅ '+out.length+'개 불러와서 바로 적용했어요'+(bad.length?(' · 형식 오류 '+bad.length+'줄은 건너뜀'):''));
     };
     r.readAsText(f); e.target.value='';
   };
+  loadQuizLocal();                    // 저장된 퀴즈 복원
   qbResetForm(); renderQuizList();   // 초기화
+  { const el=document.getElementById('quizNow'); const tg=document.getElementById('hQuizTimer');
+    if(el && quizQuestions.length) el.textContent = '✅ 적용됨 · 문제 '+quizQuestions.length+'개'+((tg&&tg.checked)?' · 시간제한 켬':' · 시간제한 끔'); }
   // 카드에 팀 색 입히기(렌더와 즉시반영에서 공용)
   function styleCard(el, ptEl, team){
     const ti = TEAM_BY_ID[team];
@@ -1358,7 +1376,11 @@ function initHost(){
   const teamRank = (t)=>{ const i = TEAM_PALETTE.findIndex(x=>x.id===t); return i<0 ? 99 : i; }; // 그리드 묶음 순서
 
   window.onServer = (m)=>{
-    if(m.type==='welcome'){ myId=m.id; return; }
+    if(m.type==='welcome'){ myId=m.id;
+      // 서버가 자다 깼거나 재시작됐을 수 있으니, 저장된 퀴즈를 자동으로 다시 보냄
+      if(quizQuestions && quizQuestions.length){ send({type:'setquiz', questions:quizQuestions, timer:(document.getElementById('hQuizTimer')||{}).checked!==false}); }
+      return;
+    }
     if(m.type==='rooms'){
       lastRooms=m;
       const total = (m.rooms||[]).reduce((s,r)=>s+r.count,0) + ((m.waiting||[]).length);
