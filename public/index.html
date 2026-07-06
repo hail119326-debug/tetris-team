@@ -493,7 +493,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11100</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11200</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -1093,20 +1093,33 @@ function initHost(){
   // 텍스트 형식 파서 (불러오기 호환용)
   function parseQuiz(text){
     const out=[]; const bad=[];
-    text.split('\n').map(s=>s.trim()).filter(Boolean).forEach(line=>{
+    const OX_TRUE = ['o','O','ㅇ','참','맞다','맞음','예','네','yes','y','true','t','1'];
+    const OX_FALSE= ['x','X','ㄴ','거짓','틀리다','틀림','아니오','아니요','no','n','false','f','0','2'];
+    text.split(/\r?\n/).map(s=>s.trim()).forEach(line=>{
+      if(!line) return;                         // 빈 줄 무시(오류 아님)
+      if(/^(#|\/\/|;)/.test(line)) return;       // 주석 줄 무시
       let m;
-      if((m=line.match(/^\[\s*ox\s*\]\s*(.+)$/i))){
-        const p=m[1].split('|').map(s=>s.trim());
-        const q=p[0], a=(p[1]||'').toUpperCase();
-        if(q && (a==='O'||a==='X')) out.push({t:'ox', q, a}); else bad.push(line);
-      } else if((m=line.match(/^\[\s*(?:객|mc)\s*\]\s*(.+)$/i))){
-        const p=m[1].split('|').map(s=>s.trim());
+      // O/X : [OX] 또는 [O/X] 태그, 또는 태그 없이 답이 O/X/참/거짓
+      if((m=line.match(/^\[\s*o\s*\/?\s*x\s*\]\s*(.+)$/i)) || (m=line.match(/^\[\s*ox\s*\]\s*(.+)$/i))){
+        const p=m[1].split(/[|\t]/).map(s=>s.trim());
+        const q=p[0], av=(p[1]||'').toLowerCase();
+        const isT=OX_TRUE.includes(p[1]||'')||OX_TRUE.includes(av);
+        const isF=OX_FALSE.includes(p[1]||'')||OX_FALSE.includes(av);
+        if(q && (isT||isF)) out.push({t:'ox', q, a:isT?'O':'X'}); else bad.push(line);
+      } else if((m=line.match(/^\[\s*(?:객|객관식|mc|multi)\s*\]\s*(.+)$/i))){
+        const p=m[1].split(/[|\t]/).map(s=>s.trim());
         const q=p[0]; let ai=-1; const opts=[];
-        for(let i=1;i<p.length;i++){ const mm=p[i].match(/^정답\s*[:：]\s*(\d+)$/); if(mm) ai=parseInt(mm[1],10)-1; else opts.push(p[i]); }
+        for(let i=1;i<p.length;i++){
+          let t=p[i];
+          const mm=t.match(/^\s*(?:정답|답|answer|ans)\s*[:：]?\s*(\d+)\s*$/i);
+          if(mm){ ai=parseInt(mm[1],10)-1; continue; }
+          if(/^\*/.test(t)){ ai=opts.length; t=t.replace(/^\*\s*/,''); }   // *보기 = 정답 표시
+          opts.push(t);
+        }
         if(q && opts.length>=2 && ai>=0 && ai<opts.length) out.push({t:'mc', q, opts, a:ai}); else bad.push(line);
-      } else if((m=line.match(/^\[\s*(?:주|sa)\s*\]\s*(.+)$/i))){
-        const p=m[1].split('|').map(s=>s.trim());
-        const q=p[0]; const ans=(p[1]||'').split('/').map(normAns).filter(Boolean);
+      } else if((m=line.match(/^\[\s*(?:주|주관식|sa|short)\s*\]\s*(.+)$/i))){
+        const p=m[1].split(/[|\t]/).map(s=>s.trim());
+        const q=p[0]; const ans=(p[1]||'').split(/[\/,]/).map(normAns).filter(Boolean);
         if(q && ans.length) out.push({t:'sa', q, a:ans}); else bad.push(line);
       } else bad.push(line);
     });
@@ -1248,7 +1261,20 @@ function initHost(){
   document.getElementById('hQuizFile').onchange = (e)=>{
     const f=e.target.files[0]; if(!f) return;
     const r=new FileReader();
-    r.onload=()=>{ const {out,bad}=parseQuiz(String(r.result||'')); quizQuestions=out; renderQuizList(); qbResetForm(); hostToast('불러왔어요: '+out.length+'개'+(bad.length?(' · 오류 '+bad.length+'줄 무시'):'')+' · [게임에 적용]을 누르세요'); };
+    r.onload=()=>{
+      const {out,bad}=parseQuiz(String(r.result||''));
+      if(!out.length){
+        hostToast('⚠️ 불러온 문제가 0개예요! 파일 형식을 확인하세요 (예: [OX] 질문 | O)');
+        return;
+      }
+      quizQuestions=out; renderQuizList(); qbResetForm();
+      // 불러오면 바로 게임에 적용 (누락 방지)
+      const timer=document.getElementById('hQuizTimer').checked;
+      send({type:'setquiz', questions:quizQuestions, timer});
+      const el=document.getElementById('quizNow');
+      if(el) el.textContent = '✅ 적용됨 · 문제 '+quizQuestions.length+'개'+(timer?' · 시간제한 켬':' · 시간제한 끔');
+      hostToast('✅ '+out.length+'개 불러와서 바로 적용했어요'+(bad.length?(' · 형식 오류 '+bad.length+'줄은 건너뜀'):''));
+    };
     r.readAsText(f); e.target.value='';
   };
   qbResetForm(); renderQuizList();   // 초기화
