@@ -493,7 +493,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11300</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11400</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -2311,19 +2311,34 @@ function initPlayer(){
 
   /* ============== 루프 / 렌더 ============== */
   // 남은 시간 표시 (시간 모드)
+  let endCountNum = -1;   // 시간모드 종료 10초 카운트 (마지막 표시한 숫자)
   function updateTimeLeft(){
-    const el=document.getElementById('timeLeft'); if(!el) return;
-    if(timeMode && timeEndsAt && (state==='playing'||state==='dead')){
-      let ms=timeEndsAt-Date.now(); if(ms<0) ms=0;
-      const s=Math.ceil(ms/1000), mm=Math.floor(s/60), ss=s%60;
-      el.textContent='⏱ '+mm+':'+String(ss).padStart(2,'0');
-      el.classList.toggle('low', s<=10);
-    } else el.textContent='';
+    const el=document.getElementById('timeLeft');
+    if(!(timeMode && timeEndsAt && (state==='playing'||state==='dead'))){
+      if(el) el.textContent='';
+      if(endCountNum!==-1){ endCountNum=-1; hideBigCount(); }   // 창 벗어나면 정리
+      return;
+    }
+    let ms=timeEndsAt-Date.now(); if(ms<0) ms=0;
+    const s=Math.ceil(ms/1000), mm=Math.floor(s/60), ss=s%60;
+    if(el){ el.textContent='⏱ '+mm+':'+String(ss).padStart(2,'0'); el.classList.toggle('low', s<=10); }
+    // 마지막 10초: 화면 가운데 큰 카운트다운
+    if(state==='playing' && s<=10 && s>=1){
+      if(s!==endCountNum){
+        endCountNum=s;
+        const wrap=document.getElementById('bigCount'), num=document.getElementById('bigCountNum');
+        if(wrap&&num){ wrap.classList.add('end'); wrap.classList.remove('hidden');
+          num.textContent=s; num.style.animation='none'; void num.offsetWidth; num.style.animation=''; }
+        try{ sfx('count'); }catch(e){}
+      }
+    } else if(endCountNum!==-1 && s>10){
+      endCountNum=-1; hideBigCount();
+    }
   }
-  setInterval(updateTimeLeft, 250);
+  setInterval(updateTimeLeft, 200);
 
   function beginGame(){
-    state='playing'; G=newGame(); spawn(G);
+    state='playing'; G=newGame(); spawn(G); endCountNum=-1;
     document.getElementById('leaderBar').classList.add('hidden');  // 게임 중엔 방장바 숨김
     closePTeamPicker();
     resetAllCollection(); renderWordList();   // 키워드 수집 초기화(처음 단어부터)
