@@ -36,16 +36,19 @@
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px;flex-wrap:wrap}
   .tbSpacer{flex:1 1 0;min-width:0}
   /* 상단바 3칸 정렬 (왼쪽 플레이어영역 / 가운데 보드 / 오른쪽 점수판에 자동 맞춤) */
-  .tbPlay{flex-basis:100%;width:100%;position:relative;height:26px}
+  .tbPlay{flex-basis:100%;width:100%;position:relative;height:34px}
   .tbcLeft,.tbcMid,.tbcRight{position:absolute;top:0;bottom:0;display:flex;align-items:center}
   .tbcLeft{justify-content:space-between}
+  .tbcLeftGrp{display:flex;align-items:center;gap:8px;min-width:0}
+  .tbPlay .leaderBar{flex-wrap:nowrap}
   .tbcNT{display:flex;align-items:center;gap:6px}
   .tbcMid{justify-content:center;gap:6px}
   .tbcRight{justify-content:flex-end;gap:6px;white-space:nowrap}
   @media (max-width:720px){
-    .tbPlay{display:flex;align-items:center;gap:8px;height:auto}
+    .tbPlay{display:flex;align-items:center;gap:8px;height:auto;flex-wrap:wrap}
     .tbcLeft,.tbcMid,.tbcRight{position:static!important;left:auto!important;width:auto!important}
     .tbcLeft{flex:1}
+    .tbPlay .leaderBar{flex-wrap:wrap}
   }
   .leaderBar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
     background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.5);border-radius:999px;padding:2px 8px;margin:0}
@@ -208,8 +211,8 @@
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
   .card h3{margin:0 0 6px;font-size:11px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase}
   #next{display:block;width:100%;background:#070a14;border-radius:8px}
-  .stat{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin:8px 2px;color:var(--muted)}
-  .stat b{font-size:26px;font-weight:900;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}
+  .stat{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;margin:5px 2px;color:var(--muted)}
+  .stat b{font-size:22px;font-weight:900;color:var(--text);font-variant-numeric:tabular-nums;line-height:1}
 
   /* 터치 컨트롤 */
   #pad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:4px}
@@ -512,7 +515,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11814</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11816</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -526,22 +529,24 @@
 <!-- ================= 학생: 게임 ================= -->
 <div id="playScreen" class="hidden">
   <div class="topbar">
-    <div id="leaderBar" class="leaderBar hidden">
-      <span class="lbTitle">👑</span>
-      <div class="lbModes">
-        <button id="lbGoSolo" class="lbmode">개인전</button>
-        <button id="lbGoTeam" class="lbmode">팀전</button>
-      </div>
-      <div id="lbTeamTools" class="lbTeamTools hidden">
-        <span class="lbHint">내 팀:</span><span id="lbMyTeam" class="lbMyTeam"></span>
-        <span class="lbHint2">카드눌러 팀지정</span>
-      </div>
-      <button id="lbReset" class="lbreset hidden">🔄 다시</button>
-      <span id="lbTimeAdj" class="lbMinBox hidden"><button id="lbAdjDn">−1분</button><button id="lbAdjUp">＋1분</button></span>
-    </div>
     <div class="tbPlay" id="tbPlay">
       <div class="tbcLeft" id="tbcLeft">
-        <span class="roomTag" id="meRoom"></span>
+        <span class="tbcLeftGrp">
+          <span class="roomTag" id="meRoom"></span>
+          <div id="leaderBar" class="leaderBar hidden">
+            <span class="lbTitle">👑</span>
+            <div class="lbModes">
+              <button id="lbGoSolo" class="lbmode">개인전</button>
+              <button id="lbGoTeam" class="lbmode">팀전</button>
+            </div>
+            <div id="lbTeamTools" class="lbTeamTools hidden">
+              <span class="lbHint">내 팀:</span><span id="lbMyTeam" class="lbMyTeam"></span>
+              <span class="lbHint2">카드눌러 팀지정</span>
+            </div>
+            <button id="lbReset" class="lbreset hidden">🔄 다시</button>
+            <span id="lbTimeAdj" class="lbMinBox hidden"><button id="lbAdjDn">−1분</button><button id="lbAdjUp">＋1분</button></span>
+          </div>
+        </span>
         <span class="tbcNT">
           <span class="me" id="meName">-</span>
           <span class="teamTag" id="meTeam"></span>
