@@ -33,10 +33,13 @@
 
   /* ---------- 학생: 게임 ---------- */
   #playScreen{position:fixed;inset:0;display:flex;flex-direction:column;padding:8px;gap:8px}
-  .topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 8px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px;flex-wrap:wrap}
+  .tbSpacer{flex:1 1 0;min-width:0}
+  .leaderBar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+    background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.5);border-radius:999px;padding:2px 8px;margin:0}
   .topbar .me{font-weight:800;font-size:16px}
   .topbar .rank{color:var(--accent);font-weight:800}
-  .roomTag{font-weight:800;font-size:13px;color:#0b0e1a;background:var(--accent);border-radius:999px;padding:2px 12px}
+  .roomTag{font-weight:800;font-size:13px;color:var(--accent);background:transparent;border:1.5px solid var(--accent);border-radius:999px;padding:2px 12px}
   .roomTag:empty{display:none}
   .timeLeft{font-weight:900;font-size:16px;color:#0b0e1a;background:#facc15;border-radius:999px;padding:2px 12px;font-variant-numeric:tabular-nums}
   .timeLeft:empty{display:none}
@@ -61,10 +64,8 @@
   .waitList .wchip:active{transform:scale(.96)}
   .waitList .wempty{color:var(--muted);font-size:13px;padding:10px}
   .waitHint{color:var(--muted);font-size:12px;margin-top:10px}
-  .leaderBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:linear-gradient(90deg,rgba(250,204,21,.16),transparent);
-    border:1px solid #facc15;border-radius:12px;padding:6px 10px;margin:4px 8px}
-  .leaderBar .lbTitle{font-weight:900;color:#facc15;font-size:14px}
-  .leaderBar button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:800;cursor:pointer}
+  .leaderBar .lbTitle{font-weight:900;color:#facc15;font-size:15px}
+  .leaderBar button{background:var(--panel2);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:800;cursor:pointer}
   .leaderBar button:active{transform:scale(.96)}
   .leaderBar .lbmode.on{background:var(--accent);color:#0b0e1a;border-color:var(--accent)}
   .leaderBar .lbstart{background:#22c55e;color:#0b0e1a;border-color:#22c55e}
@@ -493,7 +494,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11600</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11800</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -507,26 +508,28 @@
 <!-- ================= 학생: 게임 ================= -->
 <div id="playScreen" class="hidden">
   <div class="topbar">
-    <span class="me" id="meName">-</span>
+    <div id="leaderBar" class="leaderBar hidden">
+      <span class="lbTitle">👑</span>
+      <div class="lbModes">
+        <button id="lbGoSolo" class="lbmode">개인전</button>
+        <button id="lbGoTeam" class="lbmode">팀전</button>
+      </div>
+      <div id="lbTeamTools" class="lbTeamTools hidden">
+        <span class="lbHint">내 팀:</span><span id="lbMyTeam" class="lbMyTeam"></span>
+        <span class="lbHint2">카드눌러 팀지정</span>
+      </div>
+      <button id="lbReset" class="lbreset hidden">🔄 다시</button>
+      <span id="lbTimeAdj" class="lbMinBox hidden"><button id="lbAdjDn">−1분</button><button id="lbAdjUp">＋1분</button></span>
+    </div>
     <span class="roomTag" id="meRoom"></span>
+    <span class="tbSpacer"></span>
+    <span class="me" id="meName">-</span>
     <span class="teamTag" id="meTeam"></span>
     <span class="shieldBadge" id="shieldBadge"></span>
     <span class="shieldBadge mirrorB" id="mirrorBadge"></span>
     <span class="timeLeft" id="timeLeft"></span>
+    <span class="tbSpacer"></span>
     <span class="rank" id="meRank"></span>
-  </div>
-  <div id="leaderBar" class="leaderBar hidden">
-    <span class="lbTitle">👑 방장</span>
-    <div class="lbModes">
-      <button id="lbGoSolo" class="lbmode">개인전 ▸</button>
-      <button id="lbGoTeam" class="lbmode">팀전 ▸</button>
-    </div>
-    <div id="lbTeamTools" class="lbTeamTools hidden">
-      <span class="lbHint">내 팀:</span><span id="lbMyTeam" class="lbMyTeam"></span>
-      <span class="lbHint2">학생 카드를 눌러 팀 지정</span>
-    </div>
-    <button id="lbReset" class="lbreset hidden">🔄 다시</button>
-    <span id="lbTimeAdj" class="lbMinBox hidden"><button id="lbAdjDn">−1분</button><button id="lbAdjUp">＋1분</button></span>
   </div>
   <!-- 시작 설정 창 (방장) -->
   <div id="startDlg" class="startDlg hidden">
