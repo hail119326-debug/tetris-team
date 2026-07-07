@@ -248,6 +248,9 @@ function handleMessage(ws, raw) {
     case 'fog':              // 아이템: 안개 (개인전 랜덤 1명 / 팀전 랜덤 상대팀 전원)
       sendFog(ws);
       break;
+    case 'flip':             // 아이템: 조작반전 (좌우 반대, 안개와 같은 대상 규칙)
+      sendFlip(ws);
+      break;
     case 'reflect':          // 거울: 받은 공격/안개를 보낸 사람에게 되돌림
       {
         const room = roomById(ws.meta.room);
@@ -256,6 +259,8 @@ function handleMessage(ws, raw) {
         if (!target) break;
         if (m.kind === 'fog') {
           target.send(JSON.stringify({ type: 'fogged', from: ws.meta.name, fromId: ws.meta.id, reflected: true, noreflect: true }));
+        } else if (m.kind === 'flip') {
+          target.send(JSON.stringify({ type: 'flipped', from: ws.meta.name, fromId: ws.meta.id, reflected: true, noreflect: true }));
         } else {
           const amt = Math.max(1, m.amount | 0);
           target.send(JSON.stringify({ type: 'garbage', amount: amt, from: ws.meta.name, fromId: ws.meta.id, reflected: true, noreflect: true }));
@@ -494,6 +499,31 @@ function sendFog(from) {
   const names = [];
   for (const t of targets) { t.send(msg); names.push(t.meta.name); }
   from.send(JSON.stringify({ type: 'fogsent', to: (from.meta.team ? (names.length + '명') : (names[0] || '상대')) }));
+  const fx = JSON.stringify({ type: 'attackfx', fromId: from.meta.id, toId: targets[0].meta.id, amount: 0, fog: true, room: room.id });
+  for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(fx);
+}
+function sendFlip(from) {
+  const room = roomById(from.meta.room);
+  if (!room || room.phase !== 'playing') return;
+  const inRoom = playersIn(room.id);
+  let targets;
+  if (from.meta.team) {
+    // 팀전: 살아있는 상대 팀들 중 랜덤 한 팀 전원
+    const oppTeams = [...new Set(inRoom.filter(p => p.meta.alive && p.meta.team && p.meta.team !== from.meta.team).map(p => p.meta.team))];
+    if (!oppTeams.length) return;
+    const pick = oppTeams[(Math.random() * oppTeams.length) | 0];
+    targets = inRoom.filter(p => p.meta.alive && p.meta.team === pick);
+  } else {
+    // 개인전: 나 빼고 살아있는 학생 중 랜덤 1명
+    const others = inRoom.filter(p => p !== from && p.meta.alive);
+    if (!others.length) return;
+    targets = [others[(Math.random() * others.length) | 0]];
+  }
+  if (!targets || !targets.length) return;
+  const msg = JSON.stringify({ type: 'flipped', from: from.meta.name, fromId: from.meta.id });
+  const names = [];
+  for (const t of targets) { t.send(msg); names.push(t.meta.name); }
+  from.send(JSON.stringify({ type: 'flipsent', to: (from.meta.team ? (names.length + '명') : (names[0] || '상대')) }));
   const fx = JSON.stringify({ type: 'attackfx', fromId: from.meta.id, toId: targets[0].meta.id, amount: 0, fog: true, room: room.id });
   for (const h of hosts()) if (h.meta.viewRoom === room.id) h.send(fx);
 }
