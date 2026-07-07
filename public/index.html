@@ -493,7 +493,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11400</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11500</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -1152,6 +1152,15 @@ function initHost(){
       }
     }catch(e){}
   }
+  // 퀴즈를 작은 조각으로 나눠 서버에 전송 (큰 데이터 깨짐 방지)
+  function sendQuizToServer(questions, timer){
+    const BATCH=6;
+    const total=Math.max(1, Math.ceil(questions.length/BATCH));
+    if(questions.length===0){ send({type:'setquiz', questions:[], timer, part:0, parts:1}); return; }
+    for(let i=0;i<total;i++){
+      send({type:'setquiz', questions:questions.slice(i*BATCH, i*BATCH+BATCH), timer, part:i, parts:total});
+    }
+  }
   let qbCurType = 'mc';       // 현재 선택된 종류
   let qbOxAns = '';           // O/X 선택값
   let qbEditIdx = -1;         // 수정 중인 문제 index (-1=새로)
@@ -1254,14 +1263,14 @@ function initHost(){
   // 적용 / 내보내기 / 불러오기 / 전체지우기
   document.getElementById('hSetQuiz').onclick = ()=>{
     const timer=document.getElementById('hQuizTimer').checked;
-    send({type:'setquiz', questions:quizQuestions, timer});
+    sendQuizToServer(quizQuestions, timer);
     saveQuizLocal();
     hostToast(quizQuestions.length ? ('문제 '+quizQuestions.length+'개 적용') : '문제 없음 (퀴즈칸 안 나옴)');
     // 즉시 표시 갱신 (서버 응답 기다리지 않음)
     const el=document.getElementById('quizNow');
     if(el) el.textContent = quizQuestions.length ? ('✅ 적용됨 · 문제 '+quizQuestions.length+'개'+(timer?' · 시간제한 켬':' · 시간제한 끔')) : '문제 없음 (퀴즈칸 안 나옴)';
   };
-  document.getElementById('hClearQuiz').onclick = ()=>{ if(!confirm('만든 문제를 모두 지울까요?')) return; quizQuestions=[]; qbResetForm(); renderQuizList(); send({type:'setquiz', questions:[], timer:document.getElementById('hQuizTimer').checked}); saveQuizLocal(); hostToast('전체 지움'); };
+  document.getElementById('hClearQuiz').onclick = ()=>{ if(!confirm('만든 문제를 모두 지울까요?')) return; quizQuestions=[]; qbResetForm(); renderQuizList(); sendQuizToServer([], document.getElementById('hQuizTimer').checked); saveQuizLocal(); hostToast('전체 지움'); };
   document.getElementById('hExportQuiz').onclick = ()=>{
     if(!quizQuestions.length){ hostToast('내보낼 문제가 없어요'); return; }
     const text=quizQuestions.map(quizToLine).join('\n');
@@ -1284,7 +1293,7 @@ function initHost(){
       quizQuestions=out; renderQuizList(); qbResetForm();
       // 불러오면 바로 게임에 적용 (누락 방지)
       const timer=document.getElementById('hQuizTimer').checked;
-      send({type:'setquiz', questions:quizQuestions, timer});
+      sendQuizToServer(quizQuestions, timer);
       saveQuizLocal();
       const el=document.getElementById('quizNow');
       if(el) el.textContent = '✅ 적용됨 · 문제 '+quizQuestions.length+'개'+(timer?' · 시간제한 켬':' · 시간제한 끔');
@@ -1378,7 +1387,7 @@ function initHost(){
   window.onServer = (m)=>{
     if(m.type==='welcome'){ myId=m.id;
       // 서버가 자다 깼거나 재시작됐을 수 있으니, 저장된 퀴즈를 자동으로 다시 보냄
-      if(quizQuestions && quizQuestions.length){ send({type:'setquiz', questions:quizQuestions, timer:(document.getElementById('hQuizTimer')||{}).checked!==false}); }
+      if(quizQuestions && quizQuestions.length){ sendQuizToServer(quizQuestions, (document.getElementById('hQuizTimer')||{}).checked!==false); }
       return;
     }
     if(m.type==='rooms'){
@@ -1610,7 +1619,7 @@ function initPlayer(){
   let state = 'name'; // name | lobby(대기실) | roomlobby(방 안 대기) | playing | dead
   let myRoom = null, roomName = '', roomMode = 'solo', roomPhase = 'lobby', amLeader = false;
   let timeMode = false, timeBase = 0, timeEndsAt = 0, reviveTimer = null;   // 시간 모드
-  let quizList = [], quizTimerOn = true, quizActive = false;   // 퀴즈
+  let quizList = [], quizTimerOn = true, quizActive = false, quizBuf = null;   // 퀴즈
   let G = null;       // 게임 상태
   let raf=0, lastT=0, acc=0, sendAcc=0;
   let myRank=0, myTotal=0;   // 최근 순위 (죽었을 때 표시용)
@@ -1678,12 +1687,28 @@ function initPlayer(){
     }
     if(m.type==='attacked'){ showAtkToast('⚡ '+esc(m.to||'상대')+' 공격 성공!  +'+m.amount+'줄', 'send'); sfx('atk_send'); flashSend(); addMyLog('⚔️ '+atkName('나','atk')+' → '+atkName(m.to||'상대','vic')+' '+m.amount+'줄','send'); return; }
     if(m.type==='blockednotice'){ const kn=(m.kind==='fog')?'안개':'공격'; showAtkToast('🛡️ '+esc(m.by||'상대')+'가 '+kn+'를 막았어요!', 'hit'); addMyLog('🛡️ '+esc(m.by||'상대')+'가 내 '+kn+' 막음','hit'); return; }
-    if(m.type==='quiz'){
-      const prev=quizList.length;
-      quizList = Array.isArray(m.questions)?m.questions:[]; quizTimerOn = m.timer!==false;
+    if(m.type==='quizpart'){
+      // 조각으로 오는 퀴즈 조립
+      if(m.part===0) quizBuf=[];
+      if(!quizBuf) quizBuf=[];
+      if(Array.isArray(m.q)) quizBuf.push(...m.q);
+      if(m.part===m.parts-1){
+        const prev=quizList.length;
+        quizList=quizBuf.slice(); quizBuf=null; quizTimerOn=m.timer!==false;
+        const qi=document.getElementById('ovQuizInfo');
+        if(qi) qi.textContent = quizList.length ? ('❓ 퀴즈 '+quizList.length+'개 준비됨 (블록에 ❓칸이 나와요)') : '';
+        if(quizList.length && quizList.length!==prev){ try{ showItemToast('❓ 퀴즈 '+quizList.length+'개 준비됨'); }catch(e){} }
+      }
+      return;
+    }
+    if(m.type==='quiz'){   // 조각(chunk)으로 나눠 받음 → 이어붙임
+      if(m.reset) quizList = [];                           // 첫 조각이면 비우고 시작
+      const incoming = Array.isArray(m.questions)?m.questions:[];
+      quizList = quizList.concat(incoming);
+      quizTimerOn = m.timer!==false;
       const qi=document.getElementById('ovQuizInfo');
       if(qi) qi.textContent = quizList.length ? ('❓ 퀴즈 '+quizList.length+'개 준비됨 (블록에 ❓칸이 나와요)') : '';
-      if(quizList.length && quizList.length!==prev){ try{ showItemToast('❓ 퀴즈 '+quizList.length+'개 준비됨'); }catch(e){} }
+      if(m.last && quizList.length){ try{ showItemToast('❓ 퀴즈 '+quizList.length+'개 준비됨'); }catch(e){} }
       return;
     }
     if(m.type==='fogged'){
