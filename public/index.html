@@ -458,6 +458,9 @@
     100%{opacity:0;transform:translate(-50%,-85%) scale(1)}}
   /* 학생 보드 세로칸(보드 + 공격 기록) */
   .boardCol{display:flex;flex-direction:column;gap:6px;min-height:0;align-items:center}
+  /* 아이템 배지 줄 (보드 바로 위, 방어막·거울) */
+  .itemBadgeRow{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;min-height:0}
+  .itemBadgeRow:not(:has(.shieldBadge:not(:empty))){display:none}
   /* 공격 기록: 내 보드 폭에 맞춤, 2줄만 보이고 상하 스크롤 */
   #atkLogBar{display:none;flex-direction:column;gap:4px;overflow-y:auto;overflow-x:hidden;
     width:100%;max-height:60px;padding:5px 7px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-sizing:border-box}
@@ -494,7 +497,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11800</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11810</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -525,8 +528,6 @@
     <span class="tbSpacer"></span>
     <span class="me" id="meName">-</span>
     <span class="teamTag" id="meTeam"></span>
-    <span class="shieldBadge" id="shieldBadge"></span>
-    <span class="shieldBadge mirrorB" id="mirrorBadge"></span>
     <span class="timeLeft" id="timeLeft"></span>
     <span class="tbSpacer"></span>
     <span class="rank" id="meRank"></span>
@@ -550,6 +551,10 @@
   <div class="stage">
     <div class="mainCol">
       <div class="boardCol">
+        <div id="itemBadgeRow" class="itemBadgeRow">
+          <span class="shieldBadge" id="shieldBadge"></span>
+          <span class="shieldBadge mirrorB" id="mirrorBadge"></span>
+        </div>
         <div class="boardWrap">
           <canvas id="board" width="200" height="400"></canvas>
           <div id="atkFlash" class="atkFlash"></div>
