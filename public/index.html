@@ -35,6 +35,18 @@
   #playScreen{position:fixed;inset:0;display:flex;flex-direction:column;padding:8px;gap:8px}
   .topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px;flex-wrap:wrap}
   .tbSpacer{flex:1 1 0;min-width:0}
+  /* 상단바 3칸 정렬 (왼쪽 플레이어영역 / 가운데 보드 / 오른쪽 점수판에 자동 맞춤) */
+  .tbPlay{flex-basis:100%;width:100%;position:relative;height:26px}
+  .tbcLeft,.tbcMid,.tbcRight{position:absolute;top:0;bottom:0;display:flex;align-items:center}
+  .tbcLeft{justify-content:space-between}
+  .tbcNT{display:flex;align-items:center;gap:6px}
+  .tbcMid{justify-content:center;gap:6px}
+  .tbcRight{justify-content:flex-end;gap:6px;white-space:nowrap}
+  @media (max-width:720px){
+    .tbPlay{display:flex;align-items:center;gap:8px;height:auto}
+    .tbcLeft,.tbcMid,.tbcRight{position:static!important;left:auto!important;width:auto!important}
+    .tbcLeft{flex:1}
+  }
   .leaderBar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
     background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.5);border-radius:999px;padding:2px 8px;margin:0}
   .topbar .me{font-weight:800;font-size:16px}
@@ -464,9 +476,6 @@
     100%{opacity:0;transform:translate(-50%,-85%) scale(1)}}
   /* 학생 보드 세로칸(보드 + 공격 기록) */
   .boardCol{display:flex;flex-direction:column;gap:6px;min-height:0;align-items:center}
-  /* 아이템 배지 줄 (보드 바로 위, 방어막·거울) */
-  .itemBadgeRow{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;min-height:0}
-  .itemBadgeRow:not(:has(.shieldBadge:not(:empty))){display:none}
   /* 공격 기록: 내 보드 폭에 맞춤, 2줄만 보이고 상하 스크롤 */
   #atkLogBar{display:none;flex-direction:column;gap:4px;overflow-y:auto;overflow-x:hidden;
     width:100%;max-height:60px;padding:5px 7px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-sizing:border-box}
@@ -503,7 +512,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11811</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11814</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -530,13 +539,23 @@
       <button id="lbReset" class="lbreset hidden">🔄 다시</button>
       <span id="lbTimeAdj" class="lbMinBox hidden"><button id="lbAdjDn">−1분</button><button id="lbAdjUp">＋1분</button></span>
     </div>
-    <span class="roomTag" id="meRoom"></span>
-    <span class="tbSpacer"></span>
-    <span class="me" id="meName">-</span>
-    <span class="teamTag" id="meTeam"></span>
-    <span class="timeLeft" id="timeLeft"></span>
-    <span class="tbSpacer"></span>
-    <span class="rank" id="meRank"></span>
+    <div class="tbPlay" id="tbPlay">
+      <div class="tbcLeft" id="tbcLeft">
+        <span class="roomTag" id="meRoom"></span>
+        <span class="tbcNT">
+          <span class="me" id="meName">-</span>
+          <span class="teamTag" id="meTeam"></span>
+        </span>
+      </div>
+      <div class="tbcMid" id="tbcMid">
+        <span class="shieldBadge" id="shieldBadge"></span>
+        <span class="shieldBadge mirrorB" id="mirrorBadge"></span>
+      </div>
+      <div class="tbcRight" id="tbcRight">
+        <span class="rank" id="meRank"></span>
+        <span class="timeLeft" id="timeLeft"></span>
+      </div>
+    </div>
   </div>
   <!-- 시작 설정 창 (방장) -->
   <div id="startDlg" class="startDlg hidden">
@@ -557,10 +576,6 @@
   <div class="stage">
     <div class="mainCol">
       <div class="boardCol">
-        <div id="itemBadgeRow" class="itemBadgeRow">
-          <span class="shieldBadge" id="shieldBadge"></span>
-          <span class="shieldBadge mirrorB" id="mirrorBadge"></span>
-        </div>
         <div class="boardWrap">
           <canvas id="board" width="200" height="400"></canvas>
           <div id="atkFlash" class="atkFlash"></div>
@@ -1672,6 +1687,7 @@ function initPlayer(){
     state='lobby';
     setOverlay('대기실','', '선생님이 방에 넣어줄 때까지 잠시 기다려요');
     requestAnimationFrame(fit);
+    requestAnimationFrame(()=>{ try{ syncTopbar(); }catch(e){} });
     send({type:'join', role:'player', name:myName});
   }
   document.getElementById('joinBtn').onclick = tryJoin;
@@ -2403,7 +2419,22 @@ function initPlayer(){
       endCountNum=-1; hideBigCount();
     }
   }
-  setInterval(updateTimeLeft, 200);
+  // 상단바 3칸을 아래 본문 칸(왼쪽 플레이어영역·보드·점수판) 위치에 맞춤 (넓은 화면에서만)
+  function syncTopbar(){
+    const play=document.getElementById('tbPlay'); if(!play) return;
+    const L=document.getElementById('tbcLeft'), M=document.getElementById('tbcMid'), R=document.getElementById('tbcRight');
+    if(!L||!M||!R) return;
+    if(window.innerWidth<=720){ L.style.left=L.style.width=M.style.left=M.style.width=R.style.left=R.style.width=''; return; }
+    const opp=document.querySelector('.oppWrap'), bw=document.querySelector('.boardWrap'), side=document.querySelector('.side');
+    if(!opp||!bw||!side) return;
+    const pr=play.getBoundingClientRect();
+    const put=(el,r)=>{ el.style.left=(r.left-pr.left)+'px'; el.style.width=r.width+'px'; };
+    put(L, opp.getBoundingClientRect());
+    put(M, bw.getBoundingClientRect());
+    put(R, side.getBoundingClientRect());
+  }
+  window.addEventListener('resize', syncTopbar);
+  setInterval(()=>{ updateTimeLeft(); syncTopbar(); }, 200);
 
   function beginGame(){
     state='playing'; G=newGame(); spawn(G); endCountNum=-1;
