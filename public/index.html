@@ -224,7 +224,7 @@
   /* 오버레이 (대기/게임오버/카운트다운) */
   .overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
     background:rgba(7,10,20,.82);backdrop-filter:blur(3px);border-radius:10px;text-align:center;padding:20px;z-index:5}
-  .overlay h2{margin:0;font-size:clamp(24px,6vw,40px)}
+  .overlay h2{margin:0;font-size:clamp(24px,6vw,40px);white-space:nowrap;max-width:100%}
   .overlay .big{font-size:clamp(60px,18vw,120px);font-weight:900;line-height:1;
     background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
   .overlay .sub{color:var(--muted)}
@@ -521,7 +521,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11820</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11821</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -2751,7 +2751,18 @@ function initPlayer(){
     tEl.textContent=title; tEl.classList.toggle('hidden',!title);
     bEl.textContent=big; bEl.classList.toggle('hidden',!big);
     sEl.textContent=sub;
+    requestAnimationFrame(fitOverlayTitle);
   }
+  // 제목을 한 줄에 맞춰 글자 크기 자동 축소 (짧으면 크게, 길면 작게)
+  function fitOverlayTitle(){
+    const tEl=document.getElementById('ovTitle'), o=document.getElementById('playOverlay');
+    if(!tEl || !o || tEl.classList.contains('hidden')) return;
+    const avail = o.clientWidth - 24; if(avail<=0) return;
+    let size = 40; tEl.style.fontSize = size+'px';
+    let guard=0;
+    while(tEl.scrollWidth > avail && size > 13 && guard<40){ size -= 2; tEl.style.fontSize = size+'px'; guard++; }
+  }
+  window.addEventListener('resize', fitOverlayTitle);
   function hideOverlay(){ document.getElementById('playOverlay').style.display='none'; }
 
   /* ---- 소프트 드롭(부드럽게 한 칸씩) ---- */
