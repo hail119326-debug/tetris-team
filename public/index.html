@@ -524,7 +524,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11824</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11826</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -1721,7 +1721,7 @@ function initPlayer(){
           addGarbage(m.amount);
           if(!(G&&G.over)){
             const who=esc(m.from||'상대');
-            showAtkToast((m.reflected?'↩️ '+who+'가 반사!  +':'💥 '+who+'의 공격!  +')+m.amount+'줄', 'hit');
+            showAtkToast((m.reflected?'↩️ '+who+'의 반사!  +':'💥 '+who+'의 공격!  +')+m.amount+'줄', 'hit');
             sfx('atk_hit'); flashHit();
           }
           addMyLog((m.reflected?'↩️ ':'🛡️ ')+atkName(m.from||'상대','atk')+' → '+atkName('나','vic')+' '+m.amount+'줄','hit');
@@ -1730,7 +1730,7 @@ function initPlayer(){
       return;
     }
     if(m.type==='attacked'){ showAtkToast('⚡ '+esc(m.to||'상대')+' 공격 성공!  +'+m.amount+'줄', 'send'); sfx('atk_send'); flashSend(); addMyLog('⚔️ '+atkName('나','atk')+' → '+atkName(m.to||'상대','vic')+' '+m.amount+'줄','send'); return; }
-    if(m.type==='blockednotice'){ const kn=(m.kind==='fog')?'안개':(m.kind==='flip')?'조작반전':'공격'; showAtkToast('🛡️ '+esc(m.by||'상대')+'가 '+kn+'를 막았어요!', 'hit'); addMyLog('🛡️ '+esc(m.by||'상대')+'가 내 '+kn+' 막음','hit'); return; }
+    if(m.type==='blockednotice'){ const kn=(m.kind==='fog')?'안개':(m.kind==='flip')?'반전':'공격'; showAtkToast('🛡️ '+esc(m.by||'상대')+'의 방어!', 'hit'); addMyLog('🛡️ '+esc(m.by||'상대')+'가 내 '+kn+' 막음','hit'); return; }
     if(m.type==='quizpart'){
       // 조각으로 오는 퀴즈 조립
       if(m.part===0) quizBuf=[];
@@ -1773,7 +1773,7 @@ function initPlayer(){
         const res = handleIncoming('flip', 0, m.from, m.fromId, m.noreflect);
         if(res==='hit'){
           if(m.reflected) showItemToast('↩️ '+esc(m.from||'상대')+'가 반전 반사!');
-          else { showAtkToast('↔️ '+esc(m.from||'상대')+'의 조작반전!', 'hit'); flashHit(); }
+          else { showAtkToast('↔️ '+esc(m.from||'상대')+'의 반전!', 'hit'); flashHit(); }
           startFlip();
         }
       }
@@ -2286,7 +2286,7 @@ function initPlayer(){
   let fogTimer=null;
   function showFog(){
     const el=document.getElementById('fogOverlay'); if(!el) return;
-    el.classList.add('show'); showItemToast('🤯 안개!  잠깐 흐려져요');
+    el.classList.add('show');
     clearTimeout(fogTimer); fogTimer=setTimeout(()=>{ el.classList.remove('show'); }, 4000);
   }
   function clearFog(){ const el=document.getElementById('fogOverlay'); if(el) el.classList.remove('show'); clearTimeout(fogTimer); }
@@ -2301,7 +2301,7 @@ function initPlayer(){
   }
   function startFlip(){
     flipUntil = Date.now() + 5000;   // 5초간 좌우 반전
-    showItemToast('↔️ 조작 반전!  좌우가 반대예요 (5초)'); sfx('atk_send');
+    sfx('atk_send');
     try{ showImpact('좌우 반전!', '#fbbf24'); }catch(e){}
     updateFlipView();
     clearTimeout(flipTimer);
