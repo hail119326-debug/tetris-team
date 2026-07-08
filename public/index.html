@@ -398,6 +398,12 @@
   .shieldBadge{font-weight:900;font-size:15px;color:#0b0e1a;background:#38bdf8;border-radius:999px;padding:2px 12px}
   .shieldBadge:empty{display:none}
   .shieldBadge.mirrorB{background:#c084fc}
+  /* 아이템 상자 (방어 줄, 먹은 순서대로 아이콘) */
+  .defenseBox{display:inline-flex;align-items:center;gap:3px}
+  .dfSlot{width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;font-size:14px;line-height:1}
+  .dfShd{background:#0f2540;border:1.5px solid #38bdf8}
+  .dfMir{background:#2a1a3f;border:1.5px solid #c084fc}
+  .dfFirst{box-shadow:0 0 0 2px rgba(251,191,36,.9)}
   .quizTimerToggle{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px;color:var(--text);cursor:pointer}
   .quizTimerToggle input{width:18px;height:18px;cursor:pointer}
   /* 퀴즈 문제 만들기 폼 */
@@ -515,7 +521,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11816</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11817</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -553,8 +559,7 @@
         </span>
       </div>
       <div class="tbcMid" id="tbcMid">
-        <span class="shieldBadge" id="shieldBadge"></span>
-        <span class="shieldBadge mirrorB" id="mirrorBadge"></span>
+        <span class="defenseBox" id="defenseBox"></span>
       </div>
       <div class="tbcRight" id="tbcRight">
         <span class="rank" id="meRank"></span>
@@ -2088,8 +2093,7 @@ function initPlayer(){
       quizmarks: Array.from({length:ROWS},()=>Array(COLS).fill(false)), // 칸별 퀴즈칸(❓)
       cur:null, queue:[], bag:[], score:0, lines:0, level:1, down:false, over:false, combo:-1,
       atkSent:0, maxCombo:0, wordBonus:0, comboBonusTotal:0,   // 통계: 공격줄, 최대콤보, 단어보너스, 콤보보너스
-      shield:0,   // 방어막 개수 (최대 3, 공격/안개 1번씩 막음)
-      mirror:0,   // 거울 개수 (최대 3, 공격/안개를 보낸 사람에게 반사)
+      defense:[], // 방어 아이템 줄 (먹은 순서대로, 최대 6개, 'shield'=막기 / 'mirror'=반사, 맨 앞부터 사용)
     };
   }
   function bagNext(g){
@@ -2200,22 +2204,24 @@ function initPlayer(){
     }
     if(gotQuiz && quizList.length) openQuiz();   // 퀴즈칸 있었으면 문제 출제
   }
-  // 들어온 공격/안개 처리: 거울(반사) → 방어막(막기) → 맞음
+  // 들어온 공격/안개 처리: 방어 줄 맨 앞부터 사용 (거울=반사 / 방어막=막기)
   function handleIncoming(kind, amount, from, fromId, noreflect){
     const g=G; if(!g) return 'hit';
     const kName = (kind==='fog')?'안개':(kind==='flip')?'조작반전':'공격';
-    if(!noreflect && g.mirror>0 && fromId){          // 거울 먼저 (반사)
-      g.mirror--; updateBadges();
+    const front = g.defense[0];
+    if(front==='mirror' && !noreflect && fromId){    // 맨 앞이 거울 → 반사
+      g.defense.shift(); updateBadges();
       send({type:'reflect', toId:fromId, kind, amount});
       showItemToast('↩️ '+esc(from||'상대')+'의 '+kName+' 반사!'); sfx('atk_send'); flashSend();
       showImpact('반사!', '#6ee7ff');
       addMyLog('↩️ '+atkName(from||'상대','atk')+' → '+atkName('나','vic')+' <span style="color:#c4b5fd">반사함</span>','send');
       return 'reflected';
     }
-    if(g.shield>0){                                   // 방어막 (막기)
-      g.shield--; updateBadges();
+    if(front==='shield' || front==='mirror'){        // 맨 앞이 방어막(또는 반사불가한 거울) → 막기
+      const emo = (front==='mirror') ? '↩️' : '🛡️';
+      g.defense.shift(); updateBadges();
       if(fromId) send({type:'blocked', toId:fromId, kind});
-      showItemToast('🛡️ '+esc(from||'상대')+'의 '+kName+' 막음!'); sfx('atk_send');
+      showItemToast(emo+' '+esc(from||'상대')+'의 '+kName+' 막음!'); sfx('atk_send');
       addMyLog('🛡️ '+atkName(from||'상대','atk')+' → '+atkName('나','vic')+' <span style="color:#cbd5e1">막음</span>','hit');
       return 'blocked';
     }
@@ -2245,8 +2251,8 @@ function initPlayer(){
     if(item==='clean'){ cleanBottom(2); showItemToast('🧹 청소!  아래 2줄 삭제'); sfx('clear'); }
     else if(item==='atk'){ send({type:'itematk', amount:1}); showItemToast('⚔️ 공격!  상대에게 +1줄'); sfx('atk_send'); flashSend(); }
     else if(item==='bonus'){ g.score+=100; showItemToast('🎁 보너스!  +100점'); showScorePop(100); sfx('combo2'); }
-    else if(item==='shield'){ g.shield=Math.min(3,(g.shield||0)+1); updateBadges(); showItemToast('🛡️ 방어막! (지금 '+g.shield+'개)  공격·안개 막기'); sfx('combo1'); }
-    else if(item==='mirror'){ g.mirror=Math.min(3,(g.mirror||0)+1); updateBadges(); showItemToast('↩️ 거울! (지금 '+g.mirror+'개)  공격·안개 반사'); sfx('combo1'); }
+    else if(item==='shield'){ if(g.defense.length<6){ g.defense.push('shield'); updateBadges(); showItemToast('🛡️ 방어막! (지금 '+g.defense.length+'개)  공격·안개 막기'); } else { showItemToast('🛡️ 방어막 가득! (6개)'); } sfx('combo1'); }
+    else if(item==='mirror'){ if(g.defense.length<6){ g.defense.push('mirror'); updateBadges(); showItemToast('↩️ 거울! (지금 '+g.defense.length+'개)  공격·안개 반사'); } else { showItemToast('↩️ 거울 가득! (6개)'); } sfx('combo1'); }
     else if(item==='fog'){ send({type:'fog'}); showItemToast('🤯 안개!  상대 화면 흐리기'); sfx('atk_send'); }
     else if(item==='flip'){ send({type:'flip'}); showItemToast('↔️ 조작반전!  상대 좌우 뒤집기'); sfx('atk_send'); }
   }
@@ -2257,8 +2263,13 @@ function initPlayer(){
     clearTimeout(itemToastTimer); itemToastTimer=setTimeout(()=>{ el.className='itemToast'; }, 1800);
   }
   function updateBadges(){
-    const s=document.getElementById('shieldBadge'); if(s) s.textContent = (G && G.shield>0) ? ('🛡️ ×'+G.shield) : '';
-    const mr=document.getElementById('mirrorBadge'); if(mr) mr.textContent = (G && G.mirror>0) ? ('↩️ ×'+G.mirror) : '';
+    const box=document.getElementById('defenseBox'); if(!box) return;
+    const arr=(G && G.defense) ? G.defense : [];
+    box.innerHTML = arr.map((t,i)=>{
+      const emo = (t==='mirror') ? '↩️' : '🛡️';
+      const cls = (t==='mirror') ? 'dfMir' : 'dfShd';
+      return '<span class="dfSlot '+cls+(i===0?' dfFirst':'')+'">'+emo+'</span>';
+    }).join('');
   }
   function updateShieldBadge(){ updateBadges(); }   // 하위호환
   let fogTimer=null;
@@ -2545,15 +2556,18 @@ function initPlayer(){
     bctx.globalAlpha=1;
     bctx.fillStyle='#fde047';                       // 노랑
     bctx.fillRect(x*CS+1, y*CS+1, CS-2, CS-2);
-    // 반짝이는 흰 테두리 (펄스)
+    // 반짝이는 흰 테두리 (펄스, 더 굵게)
     bctx.globalAlpha=pulse;
-    bctx.strokeStyle='#fff'; bctx.lineWidth=2;
-    bctx.strokeRect(x*CS+2, y*CS+2, CS-4, CS-4);
+    bctx.strokeStyle='#fff'; bctx.lineWidth=3;
+    bctx.strokeRect(x*CS+2.5, y*CS+2.5, CS-5, CS-5);
     bctx.restore();
-    // 이모지 (크게)
-    bctx.font = Math.floor(CS*0.8) + 'px sans-serif';
+    // 이모지 (더 크게 + 그림자로 또렷하게)
+    bctx.save();
+    bctx.font = Math.floor(CS*0.92) + 'px sans-serif';
     bctx.textAlign='center'; bctx.textBaseline='middle';
+    bctx.shadowColor='rgba(0,0,0,.6)'; bctx.shadowBlur=Math.max(2,CS*0.12);
     bctx.fillText(def.emoji, cx, cy+1);
+    bctx.restore();
   }
   function drawGlyph(x,y,ch){
     bctx.fillStyle='rgba(0,0,0,.85)';
