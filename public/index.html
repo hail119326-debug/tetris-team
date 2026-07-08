@@ -454,8 +454,9 @@
   #bigCount{position:absolute}
   .bigCount span{font-size:clamp(90px,22vw,220px);font-weight:900;color:#fff;
     text-shadow:0 0 30px rgba(110,231,255,.8),0 8px 30px rgba(0,0,0,.6);animation:countpop .9s ease}
-  .bigCount.end span{color:#fb7185;text-shadow:0 0 30px rgba(251,113,133,.85),0 8px 30px rgba(0,0,0,.6)}
+  .bigCount.end span{color:#fb7185;text-shadow:0 0 14px rgba(251,113,133,.3),0 6px 20px rgba(0,0,0,.4);animation:countpopFaint .9s ease forwards;opacity:.25}
   @keyframes countpop{0%{opacity:0;transform:scale(.5)}30%{opacity:1;transform:scale(1.1)}100%{opacity:.85;transform:scale(1)}}
+  @keyframes countpopFaint{0%{opacity:0;transform:scale(.5)}30%{opacity:.3;transform:scale(1.1)}100%{opacity:.25;transform:scale(1)}}
   /* 교사 공격 기록 */
   #atkLog{display:flex;flex-direction:column;gap:4px}
   .logRow{font-size:13px;font-weight:700;color:var(--muted);background:var(--panel2);border:1px solid var(--line);
@@ -521,7 +522,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11821</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11822</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
