@@ -202,6 +202,26 @@
   .finalCard{display:flex;flex-direction:column;align-items:center;gap:12px;max-height:94vh;overflow:auto;text-align:center}
   .finalCard h2{margin:0;font-size:clamp(24px,5vw,38px)}
   .finalMe{font-size:18px;font-weight:800;color:var(--accent)}
+  /* 게임 종료 직후 모든 보드 격자 화면 (5초) */
+  #endBoardsOverlay{position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;
+    background:rgba(6,9,20,.93);backdrop-filter:blur(4px);padding:16px}
+  #endBoardsOverlay.hidden{display:none}
+  .ebInner{width:100%;max-width:920px;max-height:94vh;display:flex;flex-direction:column;gap:12px}
+  .ebHead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .ebTitle{font-size:clamp(18px,3.5vw,26px);font-weight:800;color:var(--text)}
+  .ebCd{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+  .ebCd b{color:var(--accent);font-size:16px}
+  .ebSkip{background:#1a2444;color:#cfe0ff;border:1px solid #2a3550;border-radius:999px;padding:3px 12px;font-size:12px;cursor:pointer}
+  .ebGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:12px;overflow:auto;padding:2px;justify-content:center}
+  .ebCard{display:flex;flex-direction:column;align-items:center;gap:5px;position:relative}
+  .ebBoardWrap{position:relative;width:66px;height:132px}
+  .ebBoard{width:100%;height:100%;background:#070a14;border:2px solid #2a3550;border-radius:5px;display:block;filter:grayscale(1) brightness(.7) contrast(1.08)}
+  .ebCard.ebTop .ebBoard{border-color:#facc15}
+  .ebBigRank{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:66px;font-weight:900;line-height:1;pointer-events:none;font-family:Arial,Helvetica,sans-serif;text-shadow:2px 2px 0 rgba(0,0,0,.75),0 0 14px rgba(0,0,0,.9)}
+  .ebPointBox{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);background:linear-gradient(#1e40af,#1e3a8a);border:1px solid #3b82f6;border-radius:4px;padding:3px 8px;text-align:center;box-shadow:0 2px 7px rgba(0,0,0,.65);pointer-events:none;white-space:nowrap}
+  .ebPtScore{color:#fde047;font-size:11px;font-weight:800;line-height:1.3}
+  .ebPtRank{color:#fff;font-size:10px;font-weight:700;line-height:1.3}
+  .ebName{font-size:11px;font-weight:700;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   @media (max-width:720px){
     .stage{flex-direction:column}
     .mainCol{order:1}     /* 모바일에선 내 보드를 위로 */
@@ -521,7 +541,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11817</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11819</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -645,6 +665,16 @@
     <div id="finalMe" class="finalMe"></div>
     <div id="finalList"></div>
     <button class="btn" onclick="document.getElementById('finalOverlay').classList.add('hidden')">닫기</button>
+  </div>
+</div>
+
+<div id="endBoardsOverlay" class="hidden">
+  <div class="ebInner">
+    <div class="ebHead">
+      <span class="ebTitle">🏁 게임 종료 — 최종 현황</span>
+      <span class="ebCd">결과까지 <b id="endBoardsCount">5</b>초 · <button id="endBoardsSkip" class="ebSkip">건너뛰기</button></span>
+    </div>
+    <div id="endBoardsGrid" class="ebGrid"></div>
   </div>
 </div>
 
@@ -967,6 +997,41 @@ function renderBoard(canvas, board){
   ctx.fillStyle = '#070a14'; ctx.fillRect(0,0,canvas.width,canvas.height);
   const grid = toGrid(board); if(!grid) return;
   for(let y=0;y<ROWS;y++) for(let x=0;x<COLS;x++) drawCell(ctx,x,y,grid[y][x],cs);
+}
+
+// 게임 종료 직후: 모든 플레이어 보드를 격자로 5초 보여준 뒤 done() 호출
+let endBoardsTimer = null;
+function showEndBoards(m, done){
+  const ov = document.getElementById('endBoardsOverlay');
+  const grid = document.getElementById('endBoardsGrid');
+  const players = (m && m.players) ? m.players.slice() : [];
+  if(!ov || !grid || players.length===0){ if(done) done(); return; }
+  grid.innerHTML = '';
+  const rankColor = r => r===1?'#ef4444':r===2?'#e5e7eb':r===3?'#fbbf24':'#cbd5e1';
+  players.forEach((p, i)=>{
+    const rank = i+1;
+    const ti = TEAM_BY_ID[p.team];
+    const card = document.createElement('div'); card.className = 'ebCard' + (rank===1?' ebTop':'');
+    const wrap = document.createElement('div'); wrap.className='ebBoardWrap';
+    const cv = document.createElement('canvas'); cv.width=60; cv.height=120; cv.className='ebBoard';
+    if(ti) cv.style.borderColor = ti.color;
+    const big = document.createElement('div'); big.className='ebBigRank'; big.textContent = rank; big.style.color = rankColor(rank);
+    const box = document.createElement('div'); box.className='ebPointBox';
+    box.innerHTML = '<div class="ebPtScore">'+(p.score||0)+'점</div><div class="ebPtRank">'+rank+'등</div>';
+    wrap.append(cv, big, box);
+    const nm = document.createElement('div'); nm.className='ebName';
+    nm.textContent = p.name || '-'; nm.style.color = ti?ti.color:'#e8eefc';
+    card.append(wrap, nm);
+    grid.appendChild(card);
+    if(p.board) try{ renderBoard(cv, p.board); }catch(e){}
+  });
+  ov.classList.remove('hidden');
+  let sec = 5;
+  const cd = document.getElementById('endBoardsCount'); if(cd) cd.textContent = sec;
+  const finish = ()=>{ clearInterval(endBoardsTimer); ov.classList.add('hidden'); if(done) done(); };
+  clearInterval(endBoardsTimer);
+  endBoardsTimer = setInterval(()=>{ sec--; if(cd) cd.textContent = Math.max(0,sec); if(sec<=0) finish(); }, 1000);
+  const skip = document.getElementById('endBoardsSkip'); if(skip) skip.onclick = finish;
 }
 
 /* ============================================================
@@ -1636,8 +1701,10 @@ function initHost(){
     }
     document.getElementById('hostFinalTeams').innerHTML = buildTeamStandings(m.teams);
     document.getElementById('hostFinalList').innerHTML = buildRankList(m.players, null);
-    document.getElementById('hostOverlay').classList.remove('hidden');
-    document.getElementById('hShowResult').classList.remove('hidden');   // 결과 다시 보기 버튼
+    showEndBoards(m, ()=>{
+      document.getElementById('hostOverlay').classList.remove('hidden');
+      document.getElementById('hShowResult').classList.remove('hidden');   // 결과 다시 보기 버튼
+    });
   }
 
   connect(()=> send({type:'join', role:'host', name:'HOST'}));
@@ -2644,8 +2711,8 @@ function initPlayer(){
     else { const ns=(m.winnerNames&&m.winnerNames.length)?m.winnerNames:[]; iWon = me && ns.includes(me.name); }
     setOverlay(iWon ? ('🏆 '+wi.text) : wi.text, '', me ? ('내 순위 '+pos+'위 · '+me.score+'점') : '');
     if(iWon) sfx('win');
-    openFinal();
     document.getElementById('showResultBtn').classList.remove('hidden');  // 결과 다시 보기 버튼
+    showEndBoards(m, openFinal);   // 모든 보드 5초 → 점수판
   }
   function openFinal(){
     const m = lastFinal; if(!m) return;
