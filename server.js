@@ -686,7 +686,6 @@ function finishGame(room) {
   const rank = ps.map(p => ({
     id: p.meta.id, name: p.meta.name, team: p.meta.team, score: p.meta.score, lines: p.meta.lines, alive: p.meta.alive,
     atk: p.meta.atk || 0, combo: p.meta.maxCombo || 0, wbonus: p.meta.wbonus || 0, cbonus: p.meta.cbonus || 0,
-    board: p.meta.board,
   }));
   const teams = teamSummary(ps);
   room.phase = 'ended';
