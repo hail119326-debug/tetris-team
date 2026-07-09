@@ -524,7 +524,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11829</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11831</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -2528,10 +2528,24 @@ function initPlayer(){
     // 고스트 + 현재 조각
     if(g.cur){
       const ghost={...g.cur,r:g.cur.r}; while(!collide(g,{...ghost,r:ghost.r+1})) ghost.r++;
-      bctx.globalAlpha=.22;
-      for(let y=0;y<g.cur.mat.length;y++) for(let x=0;x<g.cur.mat[y].length;x++)
-        if(g.cur.mat[y][x]) drawCell(bctx,ghost.c+x,ghost.r+y,TI[g.cur.type],CS);
-      bctx.globalAlpha=1;
+      // 고스트: 조각 바깥 실루엣만 (채우기 X, 은은한 테두리)
+      const mat=g.cur.mat, cell=(yy,xx)=>(yy>=0&&yy<mat.length&&xx>=0&&xx<mat[0].length)?mat[yy][xx]:0;
+      bctx.save();
+      bctx.strokeStyle='rgba(255,255,255,.35)';   // 흰색 35% (모든 조각 색에 두루 잘 보이는 중립색)
+      bctx.lineWidth=Math.max(2, CS*0.10);
+      bctx.lineCap='square'; bctx.lineJoin='miter';
+      bctx.beginPath();
+      for(let y=0;y<mat.length;y++) for(let x=0;x<mat[0].length;x++){
+        if(!mat[y][x]) continue;
+        const px=(ghost.c+x)*CS, py=(ghost.r+y)*CS;
+        if(!cell(y-1,x)){ bctx.moveTo(px, py);       bctx.lineTo(px+CS, py); }         // 위
+        if(!cell(y+1,x)){ bctx.moveTo(px, py+CS);    bctx.lineTo(px+CS, py+CS); }      // 아래
+        if(!cell(y,x-1)){ bctx.moveTo(px, py);       bctx.lineTo(px, py+CS); }         // 왼쪽
+        if(!cell(y,x+1)){ bctx.moveTo(px+CS, py);    bctx.lineTo(px+CS, py+CS); }      // 오른쪽
+      }
+      bctx.stroke();
+      bctx.restore();
+      // 현재 조각
       for(let y=0;y<g.cur.mat.length;y++) for(let x=0;x<g.cur.mat[y].length;x++)
         if(g.cur.mat[y][x]) drawCell(bctx,g.cur.c+x,g.cur.r+y,TI[g.cur.type],CS);
       // 현재 조각의 글자
@@ -2574,13 +2588,20 @@ function initPlayer(){
     bctx.strokeStyle='#e5e7eb'; bctx.lineWidth=3;
     bctx.strokeRect(x*CS+2.5, y*CS+2.5, CS-5, CS-5);
     bctx.restore();
-    // 이모지 (안전한 70% 크기 + 두근두근 박동 + 그림자)
+    // 이모지 (안전한 70% 크기 + 두근두근 박동 + 검은 윤곽선으로 흰배경에서도 뚜렷)
     bctx.save();
     bctx.translate(cx, cy);
     bctx.scale(beat, beat);
     bctx.font = Math.floor(CS*0.70) + 'px sans-serif';
     bctx.textAlign='center'; bctx.textBaseline='middle';
-    bctx.shadowColor='rgba(0,0,0,.55)'; bctx.shadowBlur=Math.max(2,CS*0.12);
+    // 1) 검은 윤곽선 (이모지 형태를 흰 배경 위에서도 살림)
+    bctx.lineWidth = Math.max(3, CS*0.14);
+    bctx.strokeStyle = 'rgba(0,0,0,.9)';
+    bctx.lineJoin = 'round';
+    bctx.miterLimit = 2;
+    bctx.strokeText(def.emoji, 0, 1);
+    // 2) 이모지 본체
+    bctx.shadowColor='rgba(0,0,0,.35)'; bctx.shadowBlur=Math.max(2,CS*0.08);
     bctx.fillText(def.emoji, 0, 1);
     bctx.restore();
   }
