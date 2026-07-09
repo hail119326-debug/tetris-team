@@ -523,7 +523,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11836</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11837</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -1662,6 +1662,14 @@ function initPlayer(){
   let myRoom = null, roomName = '', roomMode = 'solo', roomPhase = 'lobby', amLeader = false;
   let timeMode = false, timeBase = 0, timeEndsAt = 0, reviveTimer = null;   // 시간 모드
   let quizList = [], quizTimerOn = true, quizActive = false, quizBuf = null;   // 퀴즈
+  // 퀴즈 준비됨 안내 (중복 방지: 같은 개수를 짧은 시간 안에 다시 안 띄움)
+  let _lastQuizNotify = { count: 0, time: 0 };
+  function notifyQuizReady(count){
+    const now = Date.now();
+    if(count === _lastQuizNotify.count && now - _lastQuizNotify.time < 3000) return;
+    _lastQuizNotify = { count, time: now };
+    try{ showItemToast('❓ 퀴즈 '+count+'개 준비'); }catch(e){}
+  }
   let G = null;       // 게임 상태
   let raf=0, lastT=0, acc=0, sendAcc=0;
   let myRank=0, myTotal=0;   // 최근 순위 (죽었을 때 표시용)
@@ -1740,7 +1748,7 @@ function initPlayer(){
         quizList=quizBuf.slice(); quizBuf=null; quizTimerOn=m.timer!==false;
         const qi=document.getElementById('ovQuizInfo');
         if(qi) qi.textContent = quizList.length ? ('❓ 퀴즈 '+quizList.length+'개 준비됨 (블록에 ❓칸이 나와요)') : '';
-        if(quizList.length && quizList.length!==prev){ try{ showItemToast('❓ 퀴즈 '+quizList.length+'개 준비됨'); }catch(e){} }
+        if(quizList.length && quizList.length!==prev) notifyQuizReady(quizList.length);
       }
       return;
     }
@@ -1751,7 +1759,7 @@ function initPlayer(){
       quizTimerOn = m.timer!==false;
       const qi=document.getElementById('ovQuizInfo');
       if(qi) qi.textContent = quizList.length ? ('❓ 퀴즈 '+quizList.length+'개 준비됨 (블록에 ❓칸이 나와요)') : '';
-      if(m.last && quizList.length){ try{ showItemToast('❓ 퀴즈 '+quizList.length+'개 준비됨'); }catch(e){} }
+      if(m.last && quizList.length) notifyQuizReady(quizList.length);
       return;
     }
     if(m.type==='fogged'){
