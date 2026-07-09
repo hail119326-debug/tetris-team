@@ -523,7 +523,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11832</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11833</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -1720,7 +1720,7 @@ function initPlayer(){
           addGarbage(m.amount);
           if(!(G&&G.over)){
             const who=esc(m.from||'상대');
-            showAtkToast((m.reflected?'↩️ '+who+'의 반사!  +':'💥 '+who+'의 공격!  +')+m.amount+'줄', 'hit');
+            showAtkToast((m.reflected?'↩️ '+who+'의 반사  +':'💥 '+who+'의 공격  +')+m.amount+'줄', 'hit');
             sfx('atk_hit'); flashHit();
           }
           addMyLog((m.reflected?'↩️ ':'🛡️ ')+atkName(m.from||'상대','atk')+' → '+atkName('나','vic')+' '+m.amount+'줄','hit');
@@ -1728,8 +1728,8 @@ function initPlayer(){
       }
       return;
     }
-    if(m.type==='attacked'){ showAtkToast('⚡ '+esc(m.to||'상대')+' 공격 성공!  +'+m.amount+'줄', 'send'); sfx('atk_send'); flashSend(); addMyLog('⚔️ '+atkName('나','atk')+' → '+atkName(m.to||'상대','vic')+' '+m.amount+'줄','send'); return; }
-    if(m.type==='blockednotice'){ const kn=(m.kind==='fog')?'안개':(m.kind==='flip')?'반전':'공격'; showAtkToast('🛡️ '+esc(m.by||'상대')+'의 방어!', 'hit'); addMyLog('🛡️ '+esc(m.by||'상대')+'가 내 '+kn+' 막음','hit'); return; }
+    if(m.type==='attacked'){ showAtkToast('⚔️ '+esc(m.to||'상대')+' 공격  +'+m.amount+'줄', 'send'); sfx('atk_send'); flashSend(); addMyLog('⚔️ '+atkName('나','atk')+' → '+atkName(m.to||'상대','vic')+' '+m.amount+'줄','send'); return; }
+    if(m.type==='blockednotice'){ const kn=(m.kind==='fog')?'안개':(m.kind==='flip')?'반전':'공격'; showAtkToast('🛡️ '+esc(m.by||'상대')+'의 방어', 'hit'); addMyLog('🛡️ '+esc(m.by||'상대')+'가 내 '+kn+' 막음','hit'); return; }
     if(m.type==='quizpart'){
       // 조각으로 오는 퀴즈 조립
       if(m.part===0) quizBuf=[];
@@ -1758,27 +1758,27 @@ function initPlayer(){
       if(G && state==='playing'){
         const res = handleIncoming('fog', 0, m.from, m.fromId, m.noreflect);
         if(res==='hit'){
-          if(m.reflected) showItemToast('↩️ '+esc(m.from||'상대')+'가 안개 반사!');
-          else { showAtkToast('🤯 '+esc(m.from||'상대')+'의 안개!', 'hit'); flashHit(); }
+          if(m.reflected) showItemToast('↩️ '+esc(m.from||'상대')+'가 안개 반사');
+          else { showAtkToast('🤯 '+esc(m.from||'상대')+'의 안개', 'hit'); flashHit(); }
           showFog();
         }
       }
       return;
     }
     if(m.type==='leadchange'){ showReversal(m); return; }
-    if(m.type==='fogsent'){ addMyLog('🤯 '+atkName('나','atk')+' → '+atkName(m.to||'상대','vic')+' 안개','send'); return; }
+    if(m.type==='fogsent'){ showAtkToast('🤯 '+esc(m.to||'상대')+' 안개', 'send'); sfx('atk_send'); flashSend(); addMyLog('🤯 '+atkName('나','atk')+' → '+atkName(m.to||'상대','vic')+' 안개','send'); return; }
     if(m.type==='flipped'){
       if(G && state==='playing'){
         const res = handleIncoming('flip', 0, m.from, m.fromId, m.noreflect);
         if(res==='hit'){
-          if(m.reflected) showItemToast('↩️ '+esc(m.from||'상대')+'가 반전 반사!');
-          else { showAtkToast('↔️ '+esc(m.from||'상대')+'의 반전!', 'hit'); flashHit(); }
+          if(m.reflected) showItemToast('↩️ '+esc(m.from||'상대')+'가 반전 반사');
+          else { showAtkToast('↔️ '+esc(m.from||'상대')+'의 반전', 'hit'); flashHit(); }
           startFlip();
         }
       }
       return;
     }
-    if(m.type==='flipsent'){ addMyLog('↔️ '+atkName('나','atk')+' → '+atkName(m.to||'상대','vic')+' 조작반전','send'); return; }
+    if(m.type==='flipsent'){ showAtkToast('↔️ '+esc(m.to||'상대')+' 반전', 'send'); sfx('atk_send'); flashSend(); addMyLog('↔️ '+atkName('나','atk')+' → '+atkName(m.to||'상대','vic')+' 반전','send'); return; }
     if(m.type==='gameover'){ hideBigCount(); clearRevive(); killQuiz(); timeMode=false; onGameOver(m); return; }
     if(m.type==='endcountdown'){ runBigCount(m.sec||5, true); return; }
     if(m.type==='world'){ if(!myRoom) return; roomMode=m.mode; roomPhase=m.phase; amLeader=(m.leaderId===myId); if(m.gameType) timeMode=(m.gameType==='time'); if(m.endsAt) timeEndsAt=m.endsAt; updateLeaderBar(); onWorld(m); return; }
@@ -2222,7 +2222,7 @@ function initPlayer(){
     if(front==='mirror' && !noreflect && fromId){    // 맨 앞이 거울 → 반사
       g.defense.shift(); updateBadges();
       send({type:'reflect', toId:fromId, kind, amount});
-      showItemToast('↩️ '+esc(from||'상대')+'의 '+kName+' 반사!'); sfx('atk_send'); flashSend();
+      showItemToast('↩️ '+esc(from||'상대')+'의 '+kName+' 반사'); sfx('atk_send'); flashSend();
       showImpact('반사!', '#6ee7ff');
       addMyLog('↩️ '+atkName(from||'상대','atk')+' → '+atkName('나','vic')+' <span style="color:#c4b5fd">반사함</span>','send');
       return 'reflected';
@@ -2231,7 +2231,7 @@ function initPlayer(){
       const emo = (front==='mirror') ? '↩️' : '🛡️';
       g.defense.shift(); updateBadges();
       if(fromId) send({type:'blocked', toId:fromId, kind});
-      showItemToast(emo+' '+esc(from||'상대')+'의 '+kName+' 막음!'); sfx('atk_send');
+      showItemToast(emo+' '+esc(from||'상대')+'의 '+kName+' 막음'); sfx('atk_send');
       addMyLog('🛡️ '+atkName(from||'상대','atk')+' → '+atkName('나','vic')+' <span style="color:#cbd5e1">막음</span>','hit');
       return 'blocked';
     }
@@ -2258,13 +2258,13 @@ function initPlayer(){
   }
   function fireItem(item){
     const g=G; if(!g) return;
-    if(item==='clean'){ cleanBottom(2); showItemToast('🧹 청소!  아래 2줄 삭제'); sfx('clear'); }
-    else if(item==='atk'){ send({type:'itematk', amount:1}); showItemToast('⚔️ 공격'); sfx('atk_send'); flashSend(); }
-    else if(item==='bonus'){ g.score+=100; showItemToast('🎁 보너스!  +100점'); showScorePop(100); sfx('combo2'); }
-    else if(item==='shield'){ if(g.defense.length<6){ g.defense.push('shield'); updateBadges(); showItemToast('🛡️ 방어막!'); } else { showItemToast('🛡️ 방어막 가득!'); } sfx('combo1'); }
-    else if(item==='mirror'){ if(g.defense.length<6){ g.defense.push('mirror'); updateBadges(); showItemToast('↩️ 거울!'); } else { showItemToast('↩️ 거울 가득!'); } sfx('combo1'); }
-    else if(item==='fog'){ send({type:'fog'}); showItemToast('🤯 안개!  상대 화면 흐리기'); sfx('atk_send'); }
-    else if(item==='flip'){ send({type:'flip'}); showItemToast('↔️ 조작반전!  상대 좌우 뒤집기'); sfx('atk_send'); }
+    if(item==='clean'){ cleanBottom(2); showItemToast('🧹 청소'); sfx('clear'); }
+    else if(item==='atk'){ send({type:'itematk', amount:1}); sfx('atk_send'); flashSend(); }
+    else if(item==='bonus'){ g.score+=100; showItemToast('🎁 보너스  +100점'); showScorePop(100); sfx('combo2'); }
+    else if(item==='shield'){ if(g.defense.length<6){ g.defense.push('shield'); updateBadges(); showItemToast('🛡️ 방어막'); } else { showItemToast('🛡️ 방어막 가득'); } sfx('combo1'); }
+    else if(item==='mirror'){ if(g.defense.length<6){ g.defense.push('mirror'); updateBadges(); showItemToast('↩️ 거울'); } else { showItemToast('↩️ 거울 가득'); } sfx('combo1'); }
+    else if(item==='fog'){ send({type:'fog'}); sfx('atk_send'); }
+    else if(item==='flip'){ send({type:'flip'}); sfx('atk_send'); }
   }
   let itemToastTimer=null;
   function showItemToast(html){
@@ -2325,7 +2325,7 @@ function initPlayer(){
     try{ showImpact('좌우 반전!', '#fbbf24'); }catch(e){}
     updateFlipView();
     clearTimeout(flipTimer);
-    flipTimer=setTimeout(()=>{ flipUntil=0; updateFlipView(); showItemToast('↔️ 조작 반전 끝!'); }, 5000);
+    flipTimer=setTimeout(()=>{ flipUntil=0; updateFlipView(); showItemToast('↔️ 반전 끝'); }, 5000);
   }
   function clearFlip(){ flipUntil=0; clearTimeout(flipTimer); updateFlipView(); }
 
