@@ -524,7 +524,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11828</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11829</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -2560,24 +2560,28 @@ function initPlayer(){
   function drawItem(x,y,item){
     const def=ITEMS[item]; if(!def) return;
     itemGlow=(itemGlow+1)%1000;
-    const pulse=0.5+0.5*Math.abs(Math.sin(itemGlow*0.15));
+    const pulse=0.5+0.5*Math.abs(Math.sin(itemGlow*0.15));     // 테두리 반짝
+    const beat=1 + 0.15*Math.sin(itemGlow*0.15);                // 이모지 두근두근 (0.85~1.15)
     const cx=x*CS+CS/2, cy=y*CS+CS/2;
+    // 배경 (연회색↔흰) — 노랑블록과 안 겹치는 안전한 흰 계열, 반짝임
+    const bgMix = Math.round(229 + (255-229)*pulse);            // #e5e7eb ↔ #fff
     bctx.save();
-    // 밝은 노란 배경 칸 (잘 보이게)
     bctx.globalAlpha=1;
-    bctx.fillStyle='#fde047';                       // 노랑
+    bctx.fillStyle='rgb('+bgMix+','+bgMix+','+bgMix+')';
     bctx.fillRect(x*CS+1, y*CS+1, CS-2, CS-2);
-    // 반짝이는 흰 테두리 (펄스, 더 굵게)
+    // 반짝이는 흰 테두리 (펄스, 굵게) — 배경이 밝아 색을 살짝 어둡게
     bctx.globalAlpha=pulse;
-    bctx.strokeStyle='#fff'; bctx.lineWidth=3;
+    bctx.strokeStyle='#e5e7eb'; bctx.lineWidth=3;
     bctx.strokeRect(x*CS+2.5, y*CS+2.5, CS-5, CS-5);
     bctx.restore();
-    // 이모지 (더 크게 + 그림자로 또렷하게)
+    // 이모지 (안전한 70% 크기 + 두근두근 박동 + 그림자)
     bctx.save();
-    bctx.font = Math.floor(CS*0.92) + 'px sans-serif';
+    bctx.translate(cx, cy);
+    bctx.scale(beat, beat);
+    bctx.font = Math.floor(CS*0.70) + 'px sans-serif';
     bctx.textAlign='center'; bctx.textBaseline='middle';
-    bctx.shadowColor='rgba(0,0,0,.6)'; bctx.shadowBlur=Math.max(2,CS*0.12);
-    bctx.fillText(def.emoji, cx, cy+1);
+    bctx.shadowColor='rgba(0,0,0,.55)'; bctx.shadowBlur=Math.max(2,CS*0.12);
+    bctx.fillText(def.emoji, 0, 1);
     bctx.restore();
   }
   function drawGlyph(x,y,ch){
