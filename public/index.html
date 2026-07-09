@@ -354,13 +354,12 @@
   @keyframes atkFlashAnim{0%{opacity:0}18%{opacity:1}100%{opacity:0}}
   .boardWrap.shake{animation:atkShake .35s ease}
   @keyframes atkShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-4px,2px)}40%{transform:translate(4px,-2px)}60%{transform:translate(-3px,-1px)}80%{transform:translate(3px,1px)}}
-  /* 아이템 발동 토스트 (가운데 크게) */
+  /* 아이템 발동 토스트 (가운데 크게, 네온 발광 스타일) */
   .itemToast{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.6);
     pointer-events:none;opacity:0;z-index:6;text-align:center;
-    font-size:30px;font-weight:900;color:#fff;background:rgba(20,24,40,.92);
-    border:2px solid var(--accent);border-radius:14px;padding:12px 18px;white-space:nowrap;
-    max-width:calc(100% - 16px);overflow:hidden;text-overflow:ellipsis;
-    box-shadow:0 8px 30px rgba(0,0,0,.5)}
+    font-size:30px;font-weight:900;color:#fff;font-family:'Impact','Arial Black',sans-serif;letter-spacing:1.2px;
+    padding:2px 8px;white-space:nowrap;
+    max-width:calc(100% - 16px);overflow:hidden;text-overflow:ellipsis}
   .itemToast.show{animation:itemPop 2.5s cubic-bezier(.34,1.56,.64,1)}
   @keyframes itemPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}14%{opacity:1;transform:translate(-50%,-50%) scale(1.18)}28%{transform:translate(-50%,-50%) scale(.96)}40%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-62%) scale(1)}}
   /* 중앙 임팩트 (반사/콤보 등 특별한 순간) */
@@ -524,7 +523,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11831</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11832</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -2262,15 +2261,36 @@ function initPlayer(){
     if(item==='clean'){ cleanBottom(2); showItemToast('🧹 청소!  아래 2줄 삭제'); sfx('clear'); }
     else if(item==='atk'){ send({type:'itematk', amount:1}); showItemToast('⚔️ 공격'); sfx('atk_send'); flashSend(); }
     else if(item==='bonus'){ g.score+=100; showItemToast('🎁 보너스!  +100점'); showScorePop(100); sfx('combo2'); }
-    else if(item==='shield'){ if(g.defense.length<6){ g.defense.push('shield'); updateBadges(); showItemToast('🛡️ 방어막! (지금 '+g.defense.length+'개)  공격·안개 막기'); } else { showItemToast('🛡️ 방어막 가득! (6개)'); } sfx('combo1'); }
-    else if(item==='mirror'){ if(g.defense.length<6){ g.defense.push('mirror'); updateBadges(); showItemToast('↩️ 거울! (지금 '+g.defense.length+'개)  공격·안개 반사'); } else { showItemToast('↩️ 거울 가득! (6개)'); } sfx('combo1'); }
+    else if(item==='shield'){ if(g.defense.length<6){ g.defense.push('shield'); updateBadges(); showItemToast('🛡️ 방어막!'); } else { showItemToast('🛡️ 방어막 가득!'); } sfx('combo1'); }
+    else if(item==='mirror'){ if(g.defense.length<6){ g.defense.push('mirror'); updateBadges(); showItemToast('↩️ 거울!'); } else { showItemToast('↩️ 거울 가득!'); } sfx('combo1'); }
     else if(item==='fog'){ send({type:'fog'}); showItemToast('🤯 안개!  상대 화면 흐리기'); sfx('atk_send'); }
     else if(item==='flip'){ send({type:'flip'}); showItemToast('↔️ 조작반전!  상대 좌우 뒤집기'); sfx('atk_send'); }
   }
   let itemToastTimer=null;
   function showItemToast(html){
     const el=document.getElementById('itemToast'); if(!el) return;
-    el.innerHTML=html; el.className='itemToast'; void el.offsetWidth; el.className='itemToast show';
+    el.innerHTML=html; el.className='itemToast'; void el.offsetWidth;
+    // 이모지에 따라 발광 색 자동 선택
+    const t = (html||'').trim();
+    let g1='#fca5a5', g2='#ef4444';   // 기본: 빨강
+    if(t.startsWith('🎁'))      { g1='#fde68a'; g2='#facc15'; }   // 노랑 (보너스)
+    else if(t.startsWith('❓')) { g1='#86efac'; g2='#22c55e'; }   // 초록 (퀴즈)
+    else if(t.startsWith('🛡️')) { g1='#93c5fd'; g2='#38bdf8'; }   // 하늘 (방어막)
+    else if(t.startsWith('↩️')) { g1='#c4b5fd'; g2='#a855f7'; }   // 보라 (거울)
+    else if(t.startsWith('↔️')) { g1='#fde68a'; g2='#f59e0b'; }   // 주황 (반전 관련)
+    else if(t.startsWith('⚔️')) { g1='#93c5fd'; g2='#3b82f6'; }   // 파랑 (공격)
+    else if(t.startsWith('🧹')) { g1='#e0f2fe'; g2='#0ea5e9'; }   // 하늘 (청소)
+    else if(t.startsWith('🤯')) { g1='#fca5a5'; g2='#ef4444'; }   // 빨강 (안개)
+    el.style.textShadow = '0 0 8px '+g1+',0 0 16px '+g2+',0 0 28px '+g2;
+    el.className='itemToast show';
+    // 화면 폭에 맞춰 자동 축소 (한 줄 유지)
+    requestAnimationFrame(()=>{
+      const parent = el.offsetParent || el.parentElement; if(!parent) return;
+      const maxW = parent.clientWidth - 16;
+      let size = 30; el.style.fontSize = size+'px';
+      let guard = 0;
+      while(el.scrollWidth > maxW && size > 14 && guard < 30){ size -= 2; el.style.fontSize = size+'px'; guard++; }
+    });
     clearTimeout(itemToastTimer); itemToastTimer=setTimeout(()=>{ el.className='itemToast'; }, 2500);
   }
   function updateBadges(){
