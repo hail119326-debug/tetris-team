@@ -523,7 +523,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11833</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11836</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -1955,6 +1955,14 @@ function initPlayer(){
     el.innerHTML=html;
     el.className='atkToast '+kind+' show';
     void el.offsetWidth;
+    // 화면 폭에 맞춰 자동 축소 (한 줄 유지)
+    requestAnimationFrame(()=>{
+      const parent = el.offsetParent || el.parentElement; if(!parent) return;
+      const maxW = parent.clientWidth - 16;
+      let size = 30; el.style.fontSize = size+'px';
+      let guard = 0;
+      while(el.scrollWidth > maxW && size > 14 && guard < 30){ size -= 2; el.style.fontSize = size+'px'; guard++; }
+    });
     clearTimeout(atkToastTimer);
     atkToastTimer=setTimeout(()=>{ el.className='atkToast '+kind; }, 2500);
   }
@@ -2086,9 +2094,9 @@ function initPlayer(){
     clean:  {emoji:'🧹', label:'청소'},
     atk:    {emoji:'⚔️', label:'공격'},
     bonus:  {emoji:'🎁', label:'보너스'},
-    shield: {emoji:'🛡️', label:'방어막'},
+    shield: {emoji:'🛡️', label:'방어'},
     fog:    {emoji:'🤯', label:'안개'},
-    mirror: {emoji:'↩️', label:'거울'},
+    mirror: {emoji:'↩️', label:'반사'},
     flip:   {emoji:'↔️', label:'조작반전'},
   };
   const ITEM_KEYS = ['clean','atk','bonus','shield','fog','mirror','flip'];
@@ -2261,8 +2269,8 @@ function initPlayer(){
     if(item==='clean'){ cleanBottom(2); showItemToast('🧹 청소'); sfx('clear'); }
     else if(item==='atk'){ send({type:'itematk', amount:1}); sfx('atk_send'); flashSend(); }
     else if(item==='bonus'){ g.score+=100; showItemToast('🎁 보너스  +100점'); showScorePop(100); sfx('combo2'); }
-    else if(item==='shield'){ if(g.defense.length<6){ g.defense.push('shield'); updateBadges(); showItemToast('🛡️ 방어막'); } else { showItemToast('🛡️ 방어막 가득'); } sfx('combo1'); }
-    else if(item==='mirror'){ if(g.defense.length<6){ g.defense.push('mirror'); updateBadges(); showItemToast('↩️ 거울'); } else { showItemToast('↩️ 거울 가득'); } sfx('combo1'); }
+    else if(item==='shield'){ if(g.defense.length<6){ g.defense.push('shield'); updateBadges(); showItemToast('🛡️ 방어'); } else { showItemToast('🛡️ 방어 가득'); } sfx('combo1'); }
+    else if(item==='mirror'){ if(g.defense.length<6){ g.defense.push('mirror'); updateBadges(); showItemToast('↩️ 반사'); } else { showItemToast('↩️ 반사 가득'); } sfx('combo1'); }
     else if(item==='fog'){ send({type:'fog'}); sfx('atk_send'); }
     else if(item==='flip'){ send({type:'flip'}); sfx('atk_send'); }
   }
@@ -2659,7 +2667,7 @@ function initPlayer(){
     if(state!=='playing') return;
     state='dead'; cancelAnimationFrame(raf); stopSoft(); sfx('over'); killQuiz();
     if(timeMode){
-      timeBase += G.score;   // 누적 점수 은행에 저장
+      timeBase = G.score;    // 마지막 점수를 은행에 저장 (G.score가 이미 누적된 값)
       sendState(); send({type:'topout', score:timeBase, lines:G.lines, atk:G.atkSent, combo:G.maxCombo, wbonus:G.wordBonus, cbonus:G.comboBonusTotal});
       updateStats();
       // 5초 후 자동 부활 (시간이 남아있으면)
@@ -2679,13 +2687,15 @@ function initPlayer(){
     const rankTxt = myRank ? ('현재 '+myRank+' / '+myTotal+'위') : '';
     setOverlay('게임 오버','', '내 점수 '+G.score+'점 · '+rankTxt);
   }
-  function reviveGame(){   // 시간 모드 부활: 새 보드, 누적 점수 유지
-    state='playing'; G=newGame(); spawn(G);
+  function reviveGame(){   // 시간 모드 부활: 새 보드, 점수는 이어서
+    state='playing'; G=newGame(); G.score = timeBase;   // 이전 점수 인계
+    spawn(G);
     document.getElementById('leaderBar').classList.add('hidden');
     hideOverlay();
     lastT=performance.now(); acc=0; sendAcc=0;
     cancelAnimationFrame(raf); raf=requestAnimationFrame(loop);
     updateLeaderBar();
+    updateStats();
   }
   let lastFinal=null;   // 마지막 게임 결과 (다시 보기용)
   function onGameOver(m){
