@@ -298,6 +298,19 @@ function handleMessage(ws, raw) {
         broadcastRooms();
       }
       break;
+    case 'kick':
+      // 교사: 학생 강제 퇴장 (연결 종료)
+      if (isHost(ws)) {
+        for (const c of clients) {
+          if (c.meta && c.meta.id === m.id && c.meta.role === 'player') {
+            try { c.send(JSON.stringify({ type: 'kicked' })); } catch (e) {}
+            try { c.close(); } catch (e) {}
+            break;
+          }
+        }
+        broadcastRooms();
+      }
+      break;
     case 'setleader':        // 교사: 특정 학생을 방장으로 지정
       if (isHost(ws)) { const r = roomById(m.room); if (r) { r.leaderMode = 'fixed'; r.leaderId = (m.id | 0); broadcastRooms(); } }
       break;
