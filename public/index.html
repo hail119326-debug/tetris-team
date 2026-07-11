@@ -400,10 +400,10 @@
   .shieldBadge:empty{display:none}
   .shieldBadge.mirrorB{background:#c084fc}
   /* 아이템 상자 (방어 줄, 먹은 순서대로 아이콘) */
-  .defenseBox{display:inline-flex;align-items:center;gap:3px}
-  .dfSlot{width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;font-size:14px;line-height:1}
-  .dfShd{background:#0f2540;border:1.5px solid #38bdf8}
-  .dfMir{background:#2a1a3f;border:1.5px solid #c084fc}
+  .defenseBox{display:inline-flex;align-items:center;gap:5px}
+  .dfSlot{width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;font-size:23px;line-height:1}
+  .dfShd{background:#0f2540;border:2px solid #38bdf8}
+  .dfMir{background:#2a1a3f;border:2px solid #c084fc}
   .dfFirst{box-shadow:0 0 0 2px rgba(251,191,36,.9)}
   .quizTimerToggle{display:flex;align-items:center;gap:8px;font-weight:800;font-size:13px;color:var(--text);cursor:pointer}
   .quizTimerToggle input{width:18px;height:18px;cursor:pointer}
@@ -523,7 +523,7 @@
 </style>
 </head>
 <body>
-<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11837</div>
+<div id="verStamp" style="position:fixed;right:6px;bottom:4px;z-index:99999;font-size:11px;color:#6ee7ff;font-weight:800;opacity:.7;pointer-events:none">v11840</div>
 
 <!-- ================= 학생: 이름 입력 ================= -->
 <div id="nameScreen">
@@ -1417,6 +1417,13 @@ function initHost(){
     sec('방 이동');
     (lastRooms.rooms||[]).forEach(r=> btn(r.name + (r.id===viewRoom?' (현재)':''), '', ()=>{ send({type:'assignroom', id, room:r.id}); hostToast((nameById[id]||'학생')+' → '+r.name); }));
     btn('🕒 대기실로','', ()=>{ send({type:'assignroom', id, room:''}); hostToast((nameById[id]||'학생')+' → 대기실'); });
+    sec('강제 퇴장');
+    btn('❌ 학생 내보내기','#ef4444', ()=>{
+      const nm = nameById[id]||'학생';
+      if(confirm(nm+'을(를) 내보낼까요?\n(다시 접속할 수 있어요)')){
+        send({type:'kick', id}); hostToast(nm+' 내보냄');
+      }
+    });
     let bd=document.getElementById('rpBackdrop');
     if(!bd){ bd=document.createElement('div'); bd.id='rpBackdrop'; bd.className='tpBackdrop'; bd.onclick=closeRoomPicker; document.body.appendChild(bd); }
     bd.style.display='block'; tp.classList.remove('hidden');
@@ -1465,12 +1472,17 @@ function initHost(){
     const mk=document.createElement('button'); mk.className='rnew'; mk.textContent='➕ 방 만들기'; mk.onclick=createRoom; bar.appendChild(mk);
     // 방들
     (lastRooms.rooms||[]).forEach(r=>{
+      const wrap=document.createElement('div'); wrap.style.cssText='position:relative;display:inline-flex';
       const b=document.createElement('button'); b.className='rtab'+((!onWaitTab&&r.id===viewRoom)?' on':'');
       const phaseTxt=r.phase==='playing'?'진행중':(r.phase==='ended'?'종료':'대기');
       const phaseCls=r.phase==='playing'?'play':(r.phase==='ended'?'ended':'lobby');
       b.innerHTML='<span>'+esc(r.name)+' <span class="rphase '+phaseCls+'">'+phaseTxt+'</span></span><small>'+(r.mode==='team'?'팀전':'개인전')+' · '+r.count+'명</small>';
       b.onclick=()=> selectRoom(r.id);
-      bar.appendChild(b);
+      const del=document.createElement('button');
+      del.textContent='✕'; del.title='방 삭제';
+      del.style.cssText='position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:2px solid #0b0e1a;background:#ef4444;color:#fff;font-size:11px;font-weight:900;cursor:pointer;padding:0;line-height:1;z-index:2';
+      del.onclick=(e)=>{ e.stopPropagation(); if(confirm('"'+r.name+'" 방을 삭제할까요?\n(방에 있는 학생 '+r.count+'명이 모두 대기실로 이동돼요)')){ send({type:'deleteroom', room:r.id}); hostToast(r.name+' 삭제됨'); } };
+      wrap.append(b, del); bar.appendChild(wrap);
     });
     updateHostButtons();
   }
@@ -1662,14 +1674,6 @@ function initPlayer(){
   let myRoom = null, roomName = '', roomMode = 'solo', roomPhase = 'lobby', amLeader = false;
   let timeMode = false, timeBase = 0, timeEndsAt = 0, reviveTimer = null;   // 시간 모드
   let quizList = [], quizTimerOn = true, quizActive = false, quizBuf = null;   // 퀴즈
-  // 퀴즈 준비됨 안내 (중복 방지: 같은 개수를 짧은 시간 안에 다시 안 띄움)
-  let _lastQuizNotify = { count: 0, time: 0 };
-  function notifyQuizReady(count){
-    const now = Date.now();
-    if(count === _lastQuizNotify.count && now - _lastQuizNotify.time < 3000) return;
-    _lastQuizNotify = { count, time: now };
-    try{ showItemToast('❓ 퀴즈 '+count+'개 준비'); }catch(e){}
-  }
   let G = null;       // 게임 상태
   let raf=0, lastT=0, acc=0, sendAcc=0;
   let myRank=0, myTotal=0;   // 최근 순위 (죽었을 때 표시용)
@@ -1702,6 +1706,14 @@ function initPlayer(){
     if(!n){ document.getElementById('nameErr').textContent='이름을 입력하세요'; return; }
     myName = n;
     document.getElementById('meName').textContent = myName;
+    // 이름 클릭하면 다시 입력 (이름 삭제)
+    const meNameEl = document.getElementById('meName');
+    meNameEl.style.cursor = 'pointer'; meNameEl.title = '클릭 → 이름 다시 입력';
+    meNameEl.onclick = ()=>{
+      if(!confirm('이름을 지우고 다시 입력할까요?\n(방에서도 나가게 돼요)')) return;
+      try{ WS && WS.close(); }catch(e){}
+      location.reload();
+    };
     nameScreen.classList.add('hidden');
     playScreen.classList.remove('hidden');
     state='lobby';
@@ -1717,6 +1729,7 @@ function initPlayer(){
   window.onServer = (m)=>{
     if(m.type==='welcome'){ myId=m.id; return; }
     if(m.type==='waiting'){ enterWaitingRoom(); return; }
+    if(m.type==='kicked'){ alert('선생님이 내보냈어요. 다시 접속하려면 새로고침하세요.'); return; }
     if(m.type==='roomset'){ enterRoom(m); send({type:'quizreq'}); return; }
     if(m.type==='start'){ timeMode=(m.gameType==='time'); timeBase=0; timeEndsAt=m.endsAt||0; clearRevive(); send({type:'quizreq'}); startCountdown(); return; }
     if(m.type==='reset'){ hideBigCount(); backToRoomLobby(); return; }
@@ -1748,7 +1761,6 @@ function initPlayer(){
         quizList=quizBuf.slice(); quizBuf=null; quizTimerOn=m.timer!==false;
         const qi=document.getElementById('ovQuizInfo');
         if(qi) qi.textContent = quizList.length ? ('❓ 퀴즈 '+quizList.length+'개 준비됨 (블록에 ❓칸이 나와요)') : '';
-        if(quizList.length && quizList.length!==prev) notifyQuizReady(quizList.length);
       }
       return;
     }
@@ -1759,7 +1771,6 @@ function initPlayer(){
       quizTimerOn = m.timer!==false;
       const qi=document.getElementById('ovQuizInfo');
       if(qi) qi.textContent = quizList.length ? ('❓ 퀴즈 '+quizList.length+'개 준비됨 (블록에 ❓칸이 나와요)') : '';
-      if(m.last && quizList.length) notifyQuizReady(quizList.length);
       return;
     }
     if(m.type==='fogged'){
